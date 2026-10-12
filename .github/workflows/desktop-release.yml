@@ -101,6 +101,23 @@ jobs:
           python desktop/tools/prepare_frontend.py
           python desktop/tools/gen_manifest.py
 
+      - name: Updater artifacts only when the signing key exists
+        run: |
+          python - <<'PY'
+          import json, os
+          # Tauri refuses to build when an updater pubkey is configured but there is
+          # no private key to sign with. Rather than block the .dmg on a secret, turn
+          # the updater ARTIFACTS off for an unsigned build. The pubkey still gets
+          # compiled into the binary, so adding TAURI_SIGNING_PRIVATE_KEY later and
+          # rebuilding switches auto-update on for copies installed from this build.
+          p = "desktop/src-tauri/tauri.conf.json"
+          c = json.load(open(p))
+          has = bool(os.environ.get("TAURI_SIGNING_PRIVATE_KEY", "").strip())
+          c["bundle"]["createUpdaterArtifacts"] = has
+          json.dump(c, open(p, "w"), indent=2)
+          print("updater artifacts:", "on" if has else "off - no TAURI_SIGNING_PRIVATE_KEY, dmg only")
+          PY
+
       - name: Import Apple signing certificate (skipped if secrets absent)
         if: env.APPLE_CERTIFICATE != ''
         run: |
@@ -126,6 +143,7 @@ jobs:
           find "$B" -name "*.dmg"        -exec cp {} out/ \;
           find "$B" -name "*.app.tar.gz" -exec cp {} out/ \;
           find "$B" -name "*.app.tar.gz.sig" -exec cp {} out/ \;
+          cp PROVENANCE.json out/ 2>/dev/null || true
           ls -la out
           echo "dmg=$(ls out/*.dmg | head -1)" >> "$GITHUB_OUTPUT"
 
@@ -146,9 +164,14 @@ jobs:
           tag = os.environ.get("GITHUB_REF_NAME", f"desktop-v{v}")
           if not tag.startswith("desktop-v"): tag = f"desktop-v{v}"
           sigs = glob.glob("out/*.app.tar.gz.sig")
-          sig  = open(sigs[0]).read().strip() if sigs else ""
           tgz  = glob.glob("out/*.app.tar.gz")
-          name = os.path.basename(tgz[0]) if tgz else ""
+          if not sigs or not tgz:
+              # Unsigned build: no update bundle exists, so do not publish a feed that
+              # points at a file that is not there. The .dmg is still the deliverable.
+              print("no signed update bundle - skipping latest.json")
+              raise SystemExit(0)
+          sig  = open(sigs[0]).read().strip()
+          name = os.path.basename(tgz[0])
           url  = f"https://github.com/Semtexhigh/FinanceCalc/releases/download/{tag}/{name}"
           json.dump({
             "version": v,
