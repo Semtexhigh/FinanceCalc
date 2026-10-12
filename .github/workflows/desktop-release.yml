@@ -25,19 +25,52 @@ jobs:
   macos:
     runs-on: macos-14
     timeout-minutes: 60
-    # `secrets` is not a valid context inside a step `if`, so the ones that gate
-    # optional steps are hoisted to job env and tested from there.
-    env:
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve signing secrets
+        id: flags
+        env:
+          IN_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          IN_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IN_APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          IN_APPLE_ID: ${{ secrets.APPLE_ID }}
+          IN_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          IN_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IN_TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          IN_TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # A variable set to "" still counts as SET to the Tauri bundler, which then
+          # tries to codesign with an empty certificate and dies. `secrets` is also not
+          # a valid context in a step `if`. So: read the secrets here, export each one
+          # to later steps ONLY when it actually has a value, and publish booleans the
+          # `if` conditions can use.
+          export_if_set() {
+            [ -n "$2" ] || return 0
+            {
+              echo "$1<<__EOV__"
+              printf '%s\n' "$2"
+              echo "__EOV__"
+            } >> "$GITHUB_ENV"
+          }
+          export_if_set APPLE_CERTIFICATE                   "$IN_APPLE_CERTIFICATE"
+          export_if_set APPLE_CERTIFICATE_PASSWORD          "$IN_APPLE_CERTIFICATE_PASSWORD"
+          export_if_set APPLE_SIGNING_IDENTITY              "$IN_APPLE_SIGNING_IDENTITY"
+          export_if_set APPLE_ID                            "$IN_APPLE_ID"
+          export_if_set APPLE_PASSWORD                      "$IN_APPLE_PASSWORD"
+          export_if_set APPLE_TEAM_ID                       "$IN_APPLE_TEAM_ID"
+          export_if_set TAURI_SIGNING_PRIVATE_KEY           "$IN_TAURI_SIGNING_PRIVATE_KEY"
+          export_if_set TAURI_SIGNING_PRIVATE_KEY_PASSWORD  "$IN_TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          if [ -n "$IN_APPLE_CERTIFICATE" ]; then
+            echo "has_apple=true"  >> "$GITHUB_OUTPUT"; echo "apple signing   : on"
+          else
+            echo "has_apple=false" >> "$GITHUB_OUTPUT"; echo "apple signing   : off (unsigned build)"
+          fi
+          if [ -n "$IN_TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "has_updater_key=true"  >> "$GITHUB_OUTPUT"; echo "updater signing : on"
+          else
+            echo "has_updater_key=false" >> "$GITHUB_OUTPUT"; echo "updater signing : off (dmg only, no auto-update)"
+          fi
 
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
@@ -104,7 +137,7 @@ jobs:
       - name: Updater artifacts only when the signing key exists
         run: |
           python - <<'PY'
-          import json, os
+          import json
           # Tauri refuses to build when an updater pubkey is configured but there is
           # no private key to sign with. Rather than block the .dmg on a secret, turn
           # the updater ARTIFACTS off for an unsigned build. The pubkey still gets
@@ -112,14 +145,14 @@ jobs:
           # rebuilding switches auto-update on for copies installed from this build.
           p = "desktop/src-tauri/tauri.conf.json"
           c = json.load(open(p))
-          has = bool(os.environ.get("TAURI_SIGNING_PRIVATE_KEY", "").strip())
+          has = "${{ steps.flags.outputs.has_updater_key }}" == "true"
           c["bundle"]["createUpdaterArtifacts"] = has
           json.dump(c, open(p, "w"), indent=2)
-          print("updater artifacts:", "on" if has else "off - no TAURI_SIGNING_PRIVATE_KEY, dmg only")
+          print("updater artifacts:", "on" if has else "off - no signing key, dmg only")
           PY
 
       - name: Import Apple signing certificate (skipped if secrets absent)
-        if: env.APPLE_CERTIFICATE != ''
+        if: steps.flags.outputs.has_apple == 'true'
         run: |
           KC=build.keychain
           security create-keychain -p actions "$KC"
@@ -148,7 +181,7 @@ jobs:
           echo "dmg=$(ls out/*.dmg | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: Sign the provenance manifest
-        if: env.TAURI_SIGNING_PRIVATE_KEY != ''
+        if: steps.flags.outputs.has_updater_key == 'true'
         run: |
           printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > /tmp/updater.key
           tauri signer sign -f /tmp/updater.key -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" PROVENANCE.json || true
