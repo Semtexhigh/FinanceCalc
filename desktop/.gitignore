@@ -3,3 +3,4 @@ src-tauri/gen/
 src-tauri/src/provenance.rs
 src-tauri/icons/
 dist/
+tools/__pycache__/
