@@ -16032,6 +16032,27 @@ AI_TYPES.join(", "),
     document.getElementById("impToggle").addEventListener("click", function(){
       var w=document.getElementById("impWrap"); w.style.display=(w.style.display==="none"?"block":"none");
     });
+    // v39.9: the only way in was to paste. A real backup with photos is megabytes of
+    // base64 — pasting that is slow on desktop and silently truncates on iOS, which
+    // fails as a short JSON parse error with no hint that the paste was cut off.
+    (function(){
+      var pick=document.getElementById("impPick"), fileEl=document.getElementById("impFile"),
+          nameEl=document.getElementById("impFileName");
+      if(!pick||!fileEl||!nameEl) return;
+      pick.addEventListener("click", function(){ fileEl.value=""; fileEl.click(); });
+      fileEl.addEventListener("change", function(){
+        var f=fileEl.files && fileEl.files[0];
+        if(!f) return;
+        nameEl.textContent="reading "+f.name+"…";
+        var rd=new FileReader();
+        rd.onload=function(){
+          document.getElementById("impBox").value=String(rd.result||"");
+          nameEl.textContent=f.name+"  ("+Math.round(f.size/1024)+" KB) — press Load backup";
+        };
+        rd.onerror=function(){ nameEl.textContent="couldn't read that file — try pasting instead"; };
+        rd.readAsText(f);
+      });
+    })();
     // Photos live in ONE global namespace keyed by transaction id, but transaction ids
     // are only unique within a portfolio. So anything imported gets fresh ids (and fresh
     // photo ids) — otherwise an imported entry can silently overwrite another
@@ -18918,7 +18939,12 @@ AI_TYPES.join(", "),
       <button type="button" class="btn ghost sm warn" id="resetBtn" style="margin-left:auto">Erase this portfolio…</button>
     </div>
     <div id="impWrap" style="display:none">
-      <textarea id="impBox" placeholder="Paste your backup here, then press Load"></textarea>
+      <div style="margin-bottom:8px">
+        <button type="button" class="btn sm" id="impPick">Choose backup file…</button>
+        <span class="mut" id="impFileName" style="margin-left:8px"></span>
+        <input type="file" id="impFile" accept=".json,application/json,text/plain" style="display:none">
+      </div>
+      <textarea id="impBox" placeholder="Choose a backup file above, or paste one here, then press Load"></textarea>
       <div style="margin-top:8px"><button type="button" class="btn primary sm" id="impLoad">Load backup</button></div>
     </div>
   </div>
