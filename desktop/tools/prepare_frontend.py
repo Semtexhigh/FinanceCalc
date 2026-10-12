@@ -2,8 +2,8 @@
 """Copy the shipping FinanceCalc.html into desktop/dist/index.html and stamp it.
 
 The UI is carried over byte-for-byte apart from an ownership header prepended as
-an HTML comment and a small marker block appended before the closing body tag.
-Nothing visible changes, and no behaviour changes.
+an HTML comment and a small marker block appended before </body>. Nothing visible
+changes, and no behaviour changes.
 
 Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
 """
@@ -44,8 +44,8 @@ marker = (
     + "</script>\n"
 )
 # NOTE: FinanceCalc.html builds an export document inside a JS string that also
-# contains the closing body tag. Splicing at the FIRST match lands inside that
-# string literal and breaks the script. Always use the LAST occurrence.
+# contains "</body>". Splicing at the FIRST match lands inside that string literal
+# and breaks the script. Always use the LAST occurrence, which is the real one.
 i = html.rfind("</body>")
 out = header + (html[:i] + marker + html[i:] if i != -1 else html + marker)
 open(os.path.join(dist, "index.html"), "w", encoding="utf-8").write(out)
