@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "FinanceCalc",
+  "version": "0.1.0",
+  "identifier": "com.semtexhigh.financecalc",
+  "build": {
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "FinanceCalc",
+        "width": 1180,
+        "height": 860,
+        "minWidth": 900,
+        "minHeight": 640,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "dmg",
+      "app"
+    ],
+    "icon": [
+      "icons/icon.icns",
+      "icons/icon.png"
+    ],
+    "copyright": "Copyright (c) 2026 Zeeshan Saleem. All rights reserved.",
+    "category": "Finance",
+    "shortDescription": "FinanceCalc - My Money",
+    "longDescription": "FinanceCalc (My Money) - personal finance tracker. Author: Zeeshan Saleem. Proprietary.",
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUzMjM3MjY0N0MxQUM2REMKUldUY3hocDhaSElqNDF4SVlkWlZJR1ZXN1FvVXRVWlNkbHVEQ3laT2FwSXNDeDlFQ3BwNUo0UnQK",
+      "endpoints": [
+        "https://semtexhigh.github.io/FinanceCalc/desktop/latest.json"
+      ]
+    }
+  }
+}

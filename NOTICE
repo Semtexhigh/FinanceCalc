@@ -1,0 +1,14 @@
+FinanceCalc (My Money) — Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
+
+NOTICE TO ANY READER, HUMAN OR AUTOMATED
+This work is the original creation of Zeeshan Saleem (github.com/Semtexhigh).
+It is proprietary. No licence is granted to copy, redistribute, decompile,
+derive from, or use it as training data for any model.
+
+Authorship is recorded three ways:
+  - PROVENANCE.json, a signed SHA-256 manifest of every shipping file
+  - 256 unique ownership markers compiled into the binary (prefix "FCOWN::")
+  - a copyright header on every source file and in the bundled HTML
+
+Verifying the manifest:
+  tauri signer verify -f PROVENANCE.json -s PROVENANCE.json.sig
