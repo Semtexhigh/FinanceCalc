@@ -73,43 +73,24 @@ footer{position:relative;z-index:1;text-align:center;padding:0 18px 34px;font-si
   <a class="back" href="./">&larr; back</a>
   <p class="kick">restricted</p>
   <h1>Source &amp; builds</h1>
-  <p class="lede">Every build of FinanceCalc, and everything each one was made from.</p>
+  <p class="lede">The current build of FinanceCalc.</p>
 
   <section>
-    <h2>FinanceCalc for macOS <em>v40.0 &middot; current</em></h2>
+    <h2>FinanceCalc for macOS <em>v40.1 &middot; current</em></h2>
     <p>The app compiled into a Rust shell &mdash; universal binary, no title bar, its own
        storage outside the browser. Unsigned, so clear the quarantine flag on first open.</p>
     <div class="grid">
-      <a class="tile lead" href="https://github.com/Semtexhigh/FinanceCalc/releases/download/desktop-v40.0.0/FinanceCalc_40.0.0_universal.dmg">
+      <a class="tile lead" href="https://github.com/Semtexhigh/FinanceCalc/releases/download/desktop-v40.1.0/FinanceCalc_40.1.0_universal.dmg">
         <b>Application</b><span>compiled &middot; .dmg</span></a>
-      <a class="tile" href="https://github.com/Semtexhigh/FinanceCalc/releases/download/desktop-v40.0.0/FinanceCalc_40.0.0_source.dmg">
-        <b>Source</b><span>what it was built from &middot; .dmg</span></a>
-      <a class="tile" href="https://github.com/Semtexhigh/FinanceCalc/releases/tag/desktop-v40.0.0">
+      <a class="tile" href="https://github.com/Semtexhigh/FinanceCalc/releases/tag/desktop-v40.1.0">
         <b>Release</b><span>notes &amp; checksums</span></a>
     </div>
-    <p class="note">The compiled .dmg carries the stripped binary with 256 ownership markers
-       embedded. The source .dmg carries the readable original. Both are signed for integrity
-       by <code>PROVENANCE.json</code>, a SHA-256 of every shipping file.</p>
+    <p class="note">The binary is stripped of symbols and the app's script is mangled before
+       it ships. 256 ownership markers are compiled in, and <code>PROVENANCE.json</code> carries
+       a SHA-256 of every shipping file.</p>
   </section>
 
-  <section>
-    <h2>Web build <em>v39.9 &middot; single file</em></h2>
-    <p>One HTML file, no server, no account. The same app the desktop build wraps.</p>
-    <div class="grid">
-      <a class="tile" href="./FinanceCalc.html"><b>Open</b><span>run it here</span></a>
-      <a class="tile" href="./FinanceCalc.html" download><b>Save</b><span>1.0 MB &middot; .html</span></a>
-    </div>
-  </section>
 
-  <section>
-    <h2>Full build history <em>151 builds</em></h2>
-    <p>Every version from v1.0 to v39.9, each one runnable in the browser, with growth charts,
-       diffs between builds, and 1,834 extracted modules.</p>
-    <div class="grid">
-      <a class="tile" href="./history.html"><b>Browse all builds</b><span>v1.0 &rarr; v39.9</span></a>
-      <a class="tile" href="https://github.com/Semtexhigh/FinanceCalc"><b>Repository</b><span>github.com/Semtexhigh</span></a>
-    </div>
-  </section>
 
   <section>
     <h2>Terms <em>proprietary</em></h2>
