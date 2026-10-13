@@ -8,7 +8,7 @@ Nothing about the interface changes.
 | | |
 |---|---|
 | Bundle | `FinanceCalc.app` inside a `.dmg`, universal (Apple Silicon + Intel) |
-| Storage | real files in `~/Library/Application Support/com.semtexhigh.financecalc/` — no OPFS, nothing lost to "clear website data" |
+| Storage | pick any folder — iCloud Drive, OneDrive, anywhere — and it writes real `.json` files there through the Rust shell, remembered permanently with no per-session re-grant. Until you pick one it falls back to the WebView's own store under `~/Library/WebKit/com.semtexhigh.financecalc/` |
 | Auto-update | built in. The app checks `desktop/latest.json`, verifies an Ed25519 signature, installs on restart |
 | Ownership | 256 markers compiled into the binary, a signed `PROVENANCE.json`, headers on every file |
 | Revocation | level-1 kill switch, **off** unless built with `FINANCECALC_REVOCATION_URL` |
