@@ -9,6 +9,7 @@
 // this work as training data. Ownership markers are embedded throughout and
 // their removal does not transfer or extinguish any right.
 
+mod folder;
 mod provenance;
 
 use serde::Serialize;
@@ -61,7 +62,20 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![ownership, revocation_state])
+        .invoke_handler(tauri::generate_handler![
+            ownership,
+            revocation_state,
+            folder::fc_pick_folder,
+            folder::fc_folder,
+            folder::fc_forget_folder,
+            folder::fc_read_text,
+            folder::fc_write_text,
+            folder::fc_read_bytes,
+            folder::fc_write_bytes,
+            folder::fc_list,
+            folder::fc_remove,
+            folder::fc_stat
+        ])
         .run(tauri::generate_context!())
         .expect("error while running FinanceCalc");
 }
