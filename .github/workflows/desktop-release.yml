@@ -84,8 +84,8 @@ jobs:
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli@^2
+      - name: Install Tauri CLI and terser
+        run: npm install -g @tauri-apps/cli@^2 terser
 
       - name: Resolve version
         id: ver
@@ -179,22 +179,6 @@ jobs:
           cp PROVENANCE.json out/ 2>/dev/null || true
           ls -la out
           echo "dmg=$(ls out/*.dmg | head -1)" >> "$GITHUB_OUTPUT"
-
-      - name: Build the source .dmg
-        run: |
-          # A second disk image carrying what the app was built from, published
-          # alongside the compiled one. The app .dmg ships the stripped binary;
-          # this ships the readable source.
-          V="${{ steps.ver.outputs.version }}"
-          S="srcstage/FinanceCalc-source-$V"
-          rm -rf srcstage && mkdir -p "$S/desktop"
-          cp FinanceCalc.html LICENSE NOTICE README.md "$S"/
-          cp PROVENANCE.json "$S"/ 2>/dev/null || true
-          cp -R desktop/tools desktop/README.md desktop/src-tauri "$S/desktop"/
-          rm -rf "$S/desktop/src-tauri/target" "$S/desktop/src-tauri/gen"
-          hdiutil create -volname "FinanceCalc Source $V" -srcfolder "$S" \
-            -ov -format UDZO "out/FinanceCalc_${V}_source.dmg"
-          ls -la out
 
       - name: Sign the provenance manifest
         if: steps.flags.outputs.has_updater_key == 'true'
