@@ -7,7 +7,7 @@ changes, and no behaviour changes.
 
 Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
 """
-import hashlib, os, sys, json
+import hashlib, os, sys, json, re, shutil, subprocess, tempfile
 
 root  = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 src   = os.path.join(root, "FinanceCalc.html")
@@ -18,6 +18,50 @@ os.makedirs(dist, exist_ok=True)
 html = open(src, encoding="utf-8").read()
 orig_sha = hashlib.sha256(html.encode()).hexdigest()
 orig_len = len(html.encode())   # captured before the desktop edits below mutate `html`
+
+
+def minify(doc):
+    """Mangle every variable name in the app's inline script.
+
+    The whole app lives in one <script> wrapped in an IIFE, with no inline on*
+    handlers in the markup, no eval and no new Function - so renaming locals
+    cannot break a lookup. Property names are deliberately NOT mangled: the app
+    reads fields like `.name` off its own records, and `window.x = ...` exports
+    have to keep their names.
+
+    This is obfuscation, not protection. Anyone determined can still read the
+    result. It exists to make a casual copy useless, nothing more.
+    """
+    if not shutil.which("terser"):
+        raise SystemExit(
+            "prepare_frontend: terser not found, refusing to build an unminified app.\n"
+            "  npm install -g terser"
+        )
+    m = re.search(r"<script>(.*)</script>", doc, re.S)
+    if not m:
+        raise SystemExit("prepare_frontend: no inline <script> block found")
+    js = m.group(1)
+    with tempfile.TemporaryDirectory() as td:
+        a = os.path.join(td, "a.js")
+        b = os.path.join(td, "b.js")
+        open(a, "w", encoding="utf-8").write(js)
+        r = subprocess.run(["terser", a, "--compress", "--mangle", "--output", b],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            raise SystemExit("prepare_frontend: terser failed\n" + (r.stderr or "")[:2000])
+        out_js = open(b, encoding="utf-8").read()
+    # A collapse this large means terser dropped something it should not have.
+    if len(out_js) < len(js) * 0.25:
+        raise SystemExit(
+            f"prepare_frontend: minified output suspiciously small "
+            f"({len(js)} -> {len(out_js)} chars) - refusing to ship it"
+        )
+    print(f"  minified js {len(js)} -> {len(out_js)} chars "
+          f"({100 - len(out_js) * 100 // len(js)}% smaller)")
+    return doc[:m.start(1)] + out_js + doc[m.end(1):]
+
+
+html = minify(html)
 
 def const(name):
     for line in open(prov, encoding="utf-8"):
