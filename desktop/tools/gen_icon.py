@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Draw the app icon. Generated at build time so no binary lives in the repo.
-Copyright (c) 2026 Zeeshan Saleem. All rights reserved."""
+Copyright (c) 2026. All rights reserved."""
 import os
 from PIL import Image, ImageDraw
 

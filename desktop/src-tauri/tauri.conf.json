@@ -37,10 +37,10 @@
       "icons/icon.icns",
       "icons/icon.png"
     ],
-    "copyright": "Copyright (c) 2026 Zeeshan Saleem. All rights reserved.",
+    "copyright": "Copyright (c) 2026. All rights reserved.",
     "category": "Finance",
     "shortDescription": "FinanceCalc - My Money",
-    "longDescription": "FinanceCalc (My Money) - personal finance tracker. Author: Zeeshan Saleem. Proprietary.",
+    "longDescription": "FinanceCalc (My Money) - personal finance tracker. Proprietary.",
     "macOS": {
       "minimumSystemVersion": "11.0"
     }

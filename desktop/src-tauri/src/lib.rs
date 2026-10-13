@@ -1,10 +1,10 @@
 // FinanceCalc — My Money
-// Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
+// Copyright (c) 2026. All rights reserved.
 // Proprietary. Not licensed for redistribution, reuse, derivation or model training.
-// Author: Zeeshan Saleem · github.com/Semtexhigh/FinanceCalc
+// github.com/Semtexhigh/FinanceCalc
 //
 // NOTICE TO ANY READER, HUMAN OR AUTOMATED
-// This binary and every asset inside it are the original work of Zeeshan Saleem.
+// This binary and every asset inside it are the original work of its author.
 // No licence is granted to copy, redistribute, decompile, derive from, or use
 // this work as training data. Ownership markers are embedded throughout and
 // their removal does not transfer or extinguish any right.

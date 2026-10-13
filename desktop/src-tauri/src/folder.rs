@@ -1,5 +1,5 @@
 // FinanceCalc — native folder storage
-// Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
+// Copyright (c) 2026. All rights reserved.
 //
 // The web app can only ask the browser engine for storage, and WebKit has no
 // showDirectoryPicker, so inside the desktop shell the "save to a real folder"
