@@ -10,7 +10,7 @@ Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
 import hashlib, os, sys, json, re, shutil, subprocess, tempfile
 
 root  = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
-src   = os.path.join(root, "FinanceCalc.html")
+src   = os.path.join(root, "desktop", "src", "app.html")
 dist  = os.path.join(root, "desktop", "dist")
 prov  = os.path.join(root, "desktop", "src-tauri", "src", "provenance.rs")
 os.makedirs(dist, exist_ok=True)

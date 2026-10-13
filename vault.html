@@ -388,15 +388,27 @@ footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-si
     return out;
   }
 
-  /* fetch -> decrypt -> un-gzip -> verify the hash.  The item id is bound
-     in as additional data, so a blob cannot be swapped for another one. */
+  /* fetch (in parts, if the payload was split) -> decrypt -> un-gzip ->
+     verify the hash.  The item id is bound in as additional data, so a blob
+     cannot be swapped for another one. */
   function open_(item){
     if(!KEY) return Promise.reject(new Error("locked"));
-    var url = "./vault/" + (MAN.dir||"b") + "/" + item.id + ".enc";
-    return fetch(url, {cache:"no-store"})
-      .then(function(r){
-        if(!r.ok) throw new Error("that blob is missing (" + r.status + ")");
-        return r.arrayBuffer();
+    var base = "./vault/" + (MAN.dir||"b") + "/" + item.id + ".enc";
+    var urls = [base], n;
+    if(item.parts){ urls = []; for(n=0;n<item.parts;n++) urls.push(base + "." + n); }
+    return Promise.all(urls.map(function(u){
+        return fetch(u, {cache:"no-store"}).then(function(r){
+          if(!r.ok) throw new Error("that blob is missing (" + r.status + ")");
+          return r.arrayBuffer();
+        });
+      }))
+      .then(function(bufs){
+        if(bufs.length === 1) return bufs[0];
+        var total = 0, i;
+        for(i=0;i<bufs.length;i++) total += bufs[i].byteLength;
+        var joined = new Uint8Array(total), at = 0;
+        for(i=0;i<bufs.length;i++){ joined.set(new Uint8Array(bufs[i]), at); at += bufs[i].byteLength; }
+        return joined.buffer;
       })
       .then(function(ct){
         return subtle().decrypt({name:"AES-GCM", iv:b64(item.iv),
