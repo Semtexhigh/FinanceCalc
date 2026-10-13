@@ -4,185 +4,307 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>FinanceCalc — My Money</title>
-<meta name="description" content="A single-file, offline-first personal finance tracker. Now a native macOS app.">
+<meta name="description" content="A single-file personal finance tracker, compiled into a native macOS app. Your data stays in your own iCloud Drive folder.">
 <meta name="color-scheme" content="dark">
 <style>
 /* ---------------------------------------------------------------------------
    FinanceCalc — landing
    Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
-   One mono family, greyscale only, every motion on transform/opacity.
-   Self-contained: no CDN, no webfont, no external request of any kind.
+
+   One mono family, greyscale only.  Depth comes from real 3D transforms and
+   layered shadows, light from pointer-driven custom properties.  Every
+   animation runs on transform/opacity so the whole page stays on the
+   compositor.  Self-contained: no CDN, no webfont, no external request.
 --------------------------------------------------------------------------- */
 :root{
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
-  --bg:#070707; --fg:#f4f4f4; --dim:#9a9a9a; --faint:#5c5c5c;
-  --line:#262626; --line2:#363636; --panel:#111; --panel2:#171717;
+  --bg:#060607; --fg:#f5f5f6; --dim:#9c9ca0; --faint:#5e5e63;
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.17);
+  --glass:rgba(26,26,30,.5); --glass2:rgba(36,36,41,.46);
   --ease:cubic-bezier(.22,1,.36,1);
   --spring:cubic-bezier(.34,1.56,.64,1);
+  /* pointer position, 0..1, written by script; drives every light effect */
+  --mx:.5; --my:.35;
 }
 *{box-sizing:border-box}
-html,body{height:100%}
+html{scroll-behavior:smooth}
+html,body{min-height:100%}
 body{
   margin:0; background:var(--bg); color:var(--fg);
-  font:14px/1.55 var(--mono); font-variant-numeric:tabular-nums;
+  font:14px/1.6 var(--mono); font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased; overflow-x:hidden;
-  display:flex; flex-direction:column; min-height:100%;
 }
 
-/* ---------- moving background ------------------------------------------- */
+/* ====================================================================== */
+/* background: four stacked layers, all of them moving                     */
+/* ====================================================================== */
 .bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-/* three slow-drifting light pools */
-.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;will-change:transform}
-.b1{width:60vmax;height:60vmax;left:-18vmax;top:-22vmax;
-    background:radial-gradient(circle at 40% 40%,rgba(255,255,255,.14),transparent 62%);
+
+/* 1. slow drifting light pools */
+.blob{position:absolute;border-radius:50%;filter:blur(72px);will-change:transform}
+.b1{width:62vmax;height:62vmax;left:-20vmax;top:-24vmax;opacity:.9;
+    background:radial-gradient(circle at 40% 40%,rgba(255,255,255,.3),rgba(255,255,255,.06) 42%,transparent 66%);
     animation:drift1 34s var(--ease) infinite alternate}
-.b2{width:52vmax;height:52vmax;right:-16vmax;top:12vmax;
-    background:radial-gradient(circle at 60% 40%,rgba(255,255,255,.10),transparent 62%);
+.b2{width:54vmax;height:54vmax;right:-18vmax;top:10vmax;opacity:.82;
+    background:radial-gradient(circle at 60% 40%,rgba(255,255,255,.23),rgba(255,255,255,.05) 44%,transparent 66%);
     animation:drift2 44s var(--ease) infinite alternate}
-.b3{width:46vmax;height:46vmax;left:26vmax;bottom:-24vmax;
-    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.08),transparent 62%);
+.b3{width:48vmax;height:48vmax;left:24vmax;bottom:-26vmax;opacity:.75;
+    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.19),rgba(255,255,255,.04) 44%,transparent 66%);
     animation:drift3 38s var(--ease) infinite alternate}
 @keyframes drift1{to{transform:translate3d(14vmax,10vmax,0) scale(1.18)}}
 @keyframes drift2{to{transform:translate3d(-16vmax,8vmax,0) scale(.86)}}
 @keyframes drift3{to{transform:translate3d(10vmax,-12vmax,0) scale(1.12)}}
 
-/* a slow conic sweep, like light moving across the surface */
-.sheen{position:absolute;left:50%;top:50%;width:150vmax;height:150vmax;margin:-75vmax 0 0 -75vmax;
-  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.055) 36deg,transparent 110deg,
-             transparent 250deg,rgba(255,255,255,.035) 300deg,transparent 340deg);
+/* 2. a conic sweep — light travelling across the surface */
+.sheen{position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.09) 36deg,transparent 112deg,
+             transparent 248deg,rgba(255,255,255,.055) 300deg,transparent 342deg);
   animation:spin 52s linear infinite;will-change:transform}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* drifting dot grid */
-.grid{position:absolute;inset:-60px;opacity:.5;
-  background-image:radial-gradient(rgba(255,255,255,.10) 1px,transparent 1px);
+/* 3. dot grid, drifting, with a pointer-tracked hole punched in it */
+.grid{position:absolute;inset:-70px;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.11) 1px,transparent 1px);
   background-size:34px 34px;
-  -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,#000 35%,transparent 78%);
-          mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,#000 35%,transparent 78%);
+  -webkit-mask-image:radial-gradient(ellipse 72% 62% at calc(var(--mx)*100%) calc(var(--my)*100%),#000 28%,transparent 76%);
+          mask-image:radial-gradient(ellipse 72% 62% at calc(var(--mx)*100%) calc(var(--my)*100%),#000 28%,transparent 76%);
   animation:slide 24s linear infinite;will-change:transform}
 @keyframes slide{to{transform:translate3d(34px,34px,0)}}
 
+/* 4. the pointer's own specular pool */
+.lamp{position:absolute;inset:0;
+  background:radial-gradient(620px circle at calc(var(--mx)*100%) calc(var(--my)*100%),
+             rgba(255,255,255,.13),rgba(255,255,255,.03) 42%,transparent 74%)}
+
 /* floating specks */
-.spark{position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(255,255,255,.5);
+.spark{position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(255,255,255,.55);
   animation:rise linear infinite;will-change:transform,opacity}
 @keyframes rise{
   0%{transform:translate3d(0,14vh,0) scale(.6);opacity:0}
-  12%{opacity:.75}
-  88%{opacity:.5}
-  100%{transform:translate3d(0,-96vh,0) scale(1.15);opacity:0}
+  12%{opacity:.8} 88%{opacity:.5}
+  100%{transform:translate3d(0,-108vh,0) scale(1.15);opacity:0}
 }
-/* vignette keeps the text legible over all of it */
 .vig{position:absolute;inset:0;background:
-  radial-gradient(ellipse 85% 70% at 50% 45%,transparent 40%,rgba(0,0,0,.72) 100%)}
+  radial-gradient(ellipse 92% 80% at 50% 42%,transparent 44%,rgba(0,0,0,.68) 100%)}
 
-/* ---------- layout ------------------------------------------------------- */
-.wrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:48px 16px 28px;text-align:center}
+/* ====================================================================== */
+/* hero                                                                    */
+/* ====================================================================== */
+.shell{position:relative;z-index:1}
+.hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:72px 16px 44px;text-align:center}
 
-.kick{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);
-  margin:0 0 20px}
-h1{margin:0;font-size:clamp(38px,9vw,74px);font-weight:600;letter-spacing:-.035em;line-height:1}
+.kick{display:inline-flex;align-items:center;gap:9px;font-size:10.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--dim);margin:0 0 24px;padding:7px 14px;border-radius:99px;
+  border:1px solid var(--line);background:var(--glass);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 8px 24px rgba(0,0,0,.5);
+  animation:up .7s .1s var(--ease) both}
+.pip{width:6px;height:6px;border-radius:50%;background:#e8e8e8;
+  box-shadow:0 0 0 0 rgba(232,232,232,.55);animation:beat 2.6s var(--ease) infinite}
+@keyframes beat{
+  0%{box-shadow:0 0 0 0 rgba(232,232,232,.5);transform:scale(1)}
+  60%{box-shadow:0 0 0 7px rgba(232,232,232,0);transform:scale(1.18)}
+  100%{box-shadow:0 0 0 0 rgba(232,232,232,0);transform:scale(1)}
+}
+
+h1{margin:0;font-size:clamp(40px,9.4vw,88px);font-weight:600;letter-spacing:-.04em;line-height:.98;
+  perspective:900px}
+h1 .ch{display:inline-block;opacity:0;transform:translateY(22px) rotateX(-62deg);
+  animation:drop .66s var(--ease) forwards,sway 7s var(--ease) infinite}
 h1 .sl{color:var(--faint);font-weight:400}
-/* per-letter entrance */
-h1 .ch{display:inline-block;opacity:0;transform:translateY(18px) rotateX(-55deg);
-  animation:drop .62s var(--ease) forwards}
 @keyframes drop{to{opacity:1;transform:none}}
+/* every letter keeps breathing after it lands */
+@keyframes sway{0%,100%{translate:0 0}50%{translate:0 -1.5px}}
 
-.tag{margin:18px 0 0;color:var(--dim);font-size:14px;max-width:54ch;line-height:1.7;
-  opacity:0;animation:up .7s .55s var(--ease) forwards}
-@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tag{margin:22px auto 0;color:var(--dim);font-size:13.5px;max-width:58ch;line-height:1.75;
+  animation:up .7s .5s var(--ease) both}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
-/* ---------- the 3D button ------------------------------------------------ */
-.stage{margin:42px 0 0;perspective:720px;opacity:0;animation:up .7s .8s var(--ease) forwards}
-.d3{
-  position:relative;display:inline-block;transform-style:preserve-3d;
-  padding:0;border:0;background:none;cursor:pointer;font:inherit;color:inherit;
-  text-decoration:none;
-  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateZ(0);
-  transition:transform .24s var(--ease);
-  will-change:transform;
-}
-.d3 .face{
-  position:relative;display:flex;align-items:center;gap:14px;
-  padding:19px 32px;border-radius:15px;
-  background:linear-gradient(180deg,#2a2a2a 0%,#141414 100%);
-  border:1px solid #4a4a4a;
+/* ---------- the 3D download button ---------- */
+.stage{margin:44px 0 0;perspective:760px;animation:up .7s .72s var(--ease) both}
+.d3{position:relative;display:inline-block;transform-style:preserve-3d;
+  padding:0;border:0;background:none;cursor:pointer;font:inherit;color:inherit;text-decoration:none;
+  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
+  transition:transform .26s var(--ease);will-change:transform}
+.d3 .face{position:relative;display:flex;align-items:center;gap:15px;
+  padding:20px 34px;border-radius:16px;transform-style:preserve-3d;
+  background:linear-gradient(180deg,#2d2d30 0%,#141416 100%);
+  border:1px solid #4d4d52;
   box-shadow:
-    0 1px 0 rgba(255,255,255,.22) inset,
-    0 -1px 0 rgba(0,0,0,.65) inset,
-    0 2px 0 #2b2b2b, 0 4px 0 #242424, 0 6px 0 #1c1c1c, 0 8px 0 #151515,
-    0 16px 28px rgba(0,0,0,.72);
-  transition:transform .14s var(--ease),box-shadow .14s var(--ease);
-  overflow:hidden;
-}
+    0 1px 0 rgba(255,255,255,.24) inset,
+    0 -1px 0 rgba(0,0,0,.7) inset,
+    0 2px 0 #2b2b2e, 0 4px 0 #242427, 0 6px 0 #1c1c1f, 0 8px 0 #151517,
+    0 18px 32px rgba(0,0,0,.74), 0 36px 60px rgba(0,0,0,.5);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease);overflow:hidden}
 /* light sweeping across the face, forever */
-.d3 .face::after{
-  content:"";position:absolute;top:0;left:-130%;width:60%;height:100%;
-  background:linear-gradient(100deg,transparent,rgba(255,255,255,.16),transparent);
+.d3 .face::after{content:"";position:absolute;top:0;left:-130%;width:58%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.17),transparent);
   animation:sweep 4.6s var(--ease) infinite;pointer-events:none}
 @keyframes sweep{0%{left:-130%}55%{left:130%}100%{left:130%}}
-
-.d3:hover .face{transform:translateY(-3px);
-  box-shadow:0 1px 0 rgba(255,255,255,.28) inset,0 -1px 0 rgba(0,0,0,.65) inset,
-   0 3px 0 #2b2b2b,0 6px 0 #242424,0 9px 0 #1c1c1c,0 12px 0 #151515,0 22px 34px rgba(0,0,0,.8)}
+.d3:hover .face{transform:translateY(-3px)}
 .d3:active .face{transform:translateY(6px);
   box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 -1px 0 rgba(0,0,0,.6) inset,
-   0 1px 0 #2b2b2b,0 2px 0 #242424,0 6px 12px rgba(0,0,0,.6)}
-.d3:focus-visible{outline:2px solid #fff;outline-offset:6px;border-radius:15px}
-
-.d3 .arw{font-size:19px;transform:translateY(0);animation:bob 2.3s var(--ease) infinite}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
-.d3 .lbl{display:block;text-align:left}
+   0 1px 0 #2b2b2e,0 2px 0 #242427,0 6px 14px rgba(0,0,0,.6)}
+.d3:focus-visible{outline:2px solid #fff;outline-offset:7px;border-radius:16px}
+.d3 .arw{font-size:20px;transform:translateZ(14px);animation:bob 2.3s var(--ease) infinite}
+@keyframes bob{0%,100%{transform:translateZ(14px) translateY(0)}50%{transform:translateZ(14px) translateY(3px)}}
+.d3 .lbl{display:block;text-align:left;transform:translateZ(9px)}
 .d3 .lbl b{display:block;font-size:15px;font-weight:600;letter-spacing:-.01em}
 .d3 .lbl span{display:block;font-size:11px;color:var(--dim);margin-top:2px}
 
-.alt{margin:22px 0 0;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
-  opacity:0;animation:up .7s 1s var(--ease) forwards}
-.alt a{color:var(--dim);text-decoration:none;font-size:12px;padding:9px 15px;
-  border:1px solid var(--line);border-radius:9px;background:rgba(17,17,17,.6);
-  transition:transform .16s var(--ease),color .16s,border-color .16s}
+.alt{margin:24px 0 0;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+  animation:up .7s .9s var(--ease) both}
+.alt a{color:var(--dim);text-decoration:none;font-size:11.5px;padding:9px 15px;
+  border:1px solid var(--line);border-radius:10px;background:var(--glass);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+  transition:transform .18s var(--ease),color .18s,border-color .18s}
 .alt a:hover{color:var(--fg);border-color:var(--line2);transform:translateY(-2px)}
 .alt a:active{transform:scale(.96)}
 
-.meta{margin:34px 0 0;display:flex;gap:26px;flex-wrap:wrap;justify-content:center;
-  font-size:11px;color:var(--faint);opacity:0;animation:up .7s 1.15s var(--ease) forwards}
-.meta i{font-style:normal;color:var(--dim)}
+.meta{margin:36px 0 0;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+  animation:up .7s 1.05s var(--ease) both}
+.chip{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--faint);
+  padding:8px 13px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+.chip i{font-style:normal;color:var(--dim)}
+.chip u{text-decoration:none;width:4px;height:4px;border-radius:50%;background:#7a7a7e;
+  animation:twinkle 3.4s var(--ease) infinite}
+.chip:nth-child(2) u{animation-delay:.6s}
+.chip:nth-child(3) u{animation-delay:1.2s}
+@keyframes twinkle{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
 
-footer{position:relative;z-index:1;text-align:center;padding:20px 16px 26px;
-  font-size:11px;color:#3a3a3a}
+.scrollcue{margin:46px 0 0;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:#4a4a4e;animation:cue 2.6s var(--ease) infinite}
+@keyframes cue{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:.9;transform:translateY(4px)}}
 
-/* ---------- the gate ----------------------------------------------------- */
-.ov{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.76);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);padding:16px}
-.ov.on{display:flex;animation:fade .2s var(--ease)}
+/* ====================================================================== */
+/* architecture — the 3D cards                                             */
+/* ====================================================================== */
+.sect{max-width:1120px;margin:0 auto;padding:40px 18px 90px}
+.sect-h{text-align:center;margin:0 0 42px}
+.sect-h p.eyebrow{margin:0 0 10px;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint)}
+.sect-h h2{margin:0;font-size:clamp(22px,4.2vw,32px);font-weight:600;letter-spacing:-.025em}
+.sect-h p.sub{margin:12px auto 0;color:var(--dim);font-size:13px;max-width:62ch}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:18px;
+  perspective:1400px}
+
+.card{
+  position:relative;padding:24px 22px 22px;border-radius:18px;
+  transform-style:preserve-3d;
+  transform:rotateX(var(--crx,0deg)) rotateY(var(--cry,0deg)) translateZ(0);
+  transition:transform .42s var(--ease),border-color .3s,box-shadow .42s var(--ease);
+  border:1px solid var(--line);
+  background:
+    linear-gradient(158deg,rgba(255,255,255,.1),rgba(255,255,255,.022) 34%,transparent 68%),
+    var(--glass);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.1) inset,
+    0 0 0 1px rgba(0,0,0,.35),
+    0 10px 24px rgba(0,0,0,.42),
+    0 28px 54px rgba(0,0,0,.34);
+  will-change:transform;
+  opacity:0;animation:cardin .66s var(--ease) forwards;
+}
+@keyframes cardin{from{opacity:0;transform:translateY(16px) rotateX(-8deg)}to{opacity:1;transform:none}}
+/* a glass specular that follows the pointer inside the card */
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(320px circle at var(--lx,50%) var(--ly,0%),rgba(255,255,255,.1),transparent 68%);
+  opacity:0;transition:opacity .34s var(--ease)}
+.card:hover::before{opacity:1}
+/* the hairline that lights up along the top edge */
+.card::after{content:"";position:absolute;left:14%;right:14%;top:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  opacity:.22;transition:opacity .34s var(--ease)}
+.card:hover::after{opacity:.8}
+.card:hover{border-color:var(--line2);
+  box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 0 0 1px rgba(0,0,0,.4),
+             0 16px 34px rgba(0,0,0,.5),0 40px 76px rgba(0,0,0,.42)}
+
+.card .ic{display:flex;align-items:center;justify-content:center;width:42px;height:42px;
+  border-radius:13px;margin:0 0 16px;color:#dcdce0;
+  transform:translateZ(34px);
+  background:linear-gradient(180deg,#303034,#1a1a1d);border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 14px rgba(0,0,0,.6);
+  animation:hover 5.4s var(--ease) infinite}
+@keyframes hover{0%,100%{transform:translateZ(34px) translateY(0)}50%{transform:translateZ(34px) translateY(-3px)}}
+.card .ic svg{display:block}
+.card h3{margin:0 0 4px;font-size:14px;font-weight:600;letter-spacing:-.008em;
+  transform:translateZ(22px)}
+.card .tech{margin:0 0 11px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);transform:translateZ(16px)}
+.card p{margin:0;font-size:12.5px;color:var(--dim);line-height:1.72;transform:translateZ(10px)}
+.card ul{margin:13px 0 0;padding:0;list-style:none;transform:translateZ(10px)}
+.card li{position:relative;padding:0 0 0 15px;font-size:11.5px;color:var(--faint);line-height:1.8}
+.card li::before{content:"";position:absolute;left:0;top:.72em;width:5px;height:5px;border-radius:1px;
+  background:#6a6a6e;transform:rotate(45deg);animation:twinkle 4s var(--ease) infinite}
+.card li:nth-child(2)::before{animation-delay:.5s}
+.card li:nth-child(3)::before{animation-delay:1s}
+.card li:nth-child(4)::before{animation-delay:1.5s}
+
+/* the strip of counters */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;
+  max-width:1120px;margin:0 auto 54px;padding:0 18px}
+.stat{padding:19px;border-radius:15px;border:1px solid var(--line);background:var(--glass2);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);text-align:center;
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 10px 26px rgba(0,0,0,.4);
+  transition:transform .3s var(--ease)}
+.stat:hover{transform:translateY(-3px)}
+.stat b{display:block;font-size:clamp(22px,4vw,30px);font-weight:600;letter-spacing:-.03em}
+.stat span{display:block;margin-top:5px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint)}
+
+footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-size:11px;color:#3c3c40}
+footer a{color:#4d4d51;text-decoration:none}
+footer a:hover{color:var(--dim)}
+
+/* ====================================================================== */
+/* the owner gate                                                          */
+/* ====================================================================== */
+.ov{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:16px}
+.ov.on{display:flex;animation:fade .22s var(--ease)}
 @keyframes fade{from{opacity:0}to{opacity:1}}
-.card{width:min(360px,100%);background:var(--panel);border:1px solid var(--line2);
-  border-radius:15px;padding:24px;text-align:left;animation:pop .3s var(--spring)}
-@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
-.card h2{margin:0 0 6px;font-size:14px;font-weight:600}
-.card p{margin:0 0 16px;font-size:11.5px;color:var(--faint);line-height:1.6}
-.card input{width:100%;padding:12px 13px;border-radius:9px;border:1px solid var(--line2);
-  background:#0b0b0b;color:var(--fg);font:14px var(--mono);letter-spacing:.12em}
-.card input:focus{outline:0;border-color:#666}
-.row{display:flex;gap:8px;margin-top:12px}
-.row button{flex:1;padding:11px;border-radius:9px;border:1px solid var(--line2);
-  background:var(--panel2);color:var(--fg);font:12px var(--mono);cursor:pointer;
-  transition:transform .14s var(--ease),background .14s}
-.row button:hover{background:#202020}
+.gcard{width:min(380px,100%);border-radius:18px;padding:26px;text-align:left;
+  border:1px solid var(--line2);
+  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 40%),rgba(18,18,20,.92);
+  -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 30px 70px rgba(0,0,0,.72);
+  animation:pop .34s var(--spring)}
+@keyframes pop{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+.gcard h2{margin:0 0 6px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:9px}
+.gcard h2 em{font-style:normal;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:3px 7px}
+.gcard p{margin:0 0 18px;font-size:11.5px;color:var(--faint);line-height:1.65}
+.gcard input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line2);
+  background:rgba(0,0,0,.5);color:var(--fg);font:14px var(--mono);letter-spacing:.14em}
+.gcard input:focus{outline:0;border-color:#6d6d72;box-shadow:0 0 0 3px rgba(255,255,255,.05)}
+.row{display:flex;gap:9px;margin-top:14px}
+.row button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line2);
+  background:rgba(255,255,255,.04);color:var(--fg);font:12px var(--mono);cursor:pointer;
+  transition:transform .15s var(--ease),background .15s}
+.row button:hover{background:rgba(255,255,255,.1)}
 .row button:active{transform:scale(.96)}
-.row button.go{background:#e9e9e9;color:#0a0a0a;border-color:#e9e9e9;font-weight:600}
+.row button.go{background:#ececed;color:#0a0a0b;border-color:#ececed;font-weight:600}
 .row button.go:hover{background:#fff}
-.bad{animation:shake .32s}
-@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}
-  40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-.err{margin:9px 0 0;font-size:11px;color:var(--dim);min-height:14px}
+.bad{animation:shake .34s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.err{margin:10px 0 0;font-size:11px;color:var(--dim);min-height:15px}
 
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
     transition-duration:.01ms!important}
-  h1 .ch,.tag,.stage,.alt,.meta{opacity:1!important;transform:none!important}
+  .kick,.tag,.stage,.alt,.meta,h1 .ch,.card{opacity:1!important;transform:none!important}
 }
-@media(max-width:520px){ .d3 .face{padding:17px 24px} .meta{gap:16px} }
+@media(max-width:560px){
+  .d3 .face{padding:18px 26px}
+  .hero{padding:56px 14px 36px}
+  .card{padding:20px 18px}
+}
 </style>
 </head>
 <body>
@@ -192,44 +314,182 @@ footer{position:relative;z-index:1;text-align:center;padding:20px 16px 26px;
   <div class="sheen"></div>
   <div class="grid"></div>
   <div id="sparks"></div>
+  <div class="lamp"></div>
   <div class="vig"></div>
 </div>
 
-<div class="wrap">
-  <p class="kick">single file &middot; offline first &middot; yours</p>
-  <h1 id="wm" aria-label="FinanceCalc">FinanceCalc</h1>
-  <p class="tag">A personal finance tracker that keeps everything on your own machine.
-     151 builds in the open, and now a native macOS app.</p>
+<div class="shell">
 
-  <div class="stage">
-    <a class="d3" id="dl"
-       href="https://github.com/Semtexhigh/FinanceCalc/releases/download/desktop-v40.2.0/FinanceCalc_40.2.0_universal.dmg">
-      <span class="face">
-        <span class="arw" aria-hidden="true">&darr;</span>
-        <span class="lbl"><b>Download for macOS</b><span>v40.2 &middot; universal &middot; .dmg</span></span>
-      </span>
-    </a>
-  </div>
+  <!-- ---------------------------------------------------------------- hero -->
+  <header class="hero">
+    <p class="kick"><span class="pip"></span> v40.2 &middot; native macOS &middot; shipping</p>
 
-  <div class="alt">
-    <a href="https://github.com/Semtexhigh/FinanceCalc/releases/tag/desktop-v40.2.0">Release notes</a>
-  </div>
+    <h1 id="wm" aria-label="FinanceCalc">FinanceCalc</h1>
 
-  <div class="meta">
-    <span><i>macOS 11+</i> Apple Silicon &amp; Intel</span>
-    <span><i>Unsigned</i> clear quarantine on first open</span>
-    <span><i>No account</i> nothing leaves the device</span>
-  </div>
+    <p class="tag">A personal finance tracker in one file, compiled into a Rust shell.
+       It writes straight into a folder you choose &mdash; iCloud Drive, OneDrive, anywhere &mdash;
+       so your money lives with your own files, not in a browser's cupboard.</p>
+
+    <div class="stage">
+      <a class="d3" id="dl"
+         href="https://github.com/Semtexhigh/FinanceCalc/releases/download/desktop-v40.2.0/FinanceCalc_40.2.0_universal.dmg">
+        <span class="face">
+          <span class="arw" aria-hidden="true">&darr;</span>
+          <span class="lbl"><b>Download for macOS</b><span>v40.2 &middot; universal &middot; 5.0 MB .dmg</span></span>
+        </span>
+      </a>
+    </div>
+
+    <div class="alt">
+      <a href="#architecture">What's inside</a>
+      <a href="https://github.com/Semtexhigh/FinanceCalc/releases/tag/desktop-v40.2.0">Release notes</a>
+    </div>
+
+    <div class="meta">
+      <span class="chip"><u></u><i>macOS 11+</i> Apple Silicon &amp; Intel</span>
+      <span class="chip"><u></u><i>Unsigned</i> clear quarantine on first open</span>
+      <span class="chip"><u></u><i>No account</i> nothing leaves the device</span>
+    </div>
+
+    <p class="scrollcue">architecture &darr;</p>
+  </header>
+
+  <!-- ------------------------------------------------------------ the cards -->
+  <section class="sect" id="architecture">
+    <div class="sect-h">
+      <p class="eyebrow">what the .dmg contains</p>
+      <h2>Eight layers, one 5&nbsp;MB file</h2>
+      <p class="sub">The app you see is the same single HTML file it always was. Everything below it
+         is new: a Rust process that owns the window, the filesystem and the update channel.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="n1">0</b><span>builds shipped</span></div>
+      <div class="stat"><b id="n2">0</b><span>rust commands</span></div>
+      <div class="stat"><b id="n3">0</b><span>ownership markers</span></div>
+      <div class="stat"><b id="n4">0</b><span>network calls</span></div>
+    </div>
+
+    <div class="cards" id="cards">
+
+      <article class="card" style="animation-delay:.04s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7.5" y="7.5" width="9" height="9" rx="1.8"/><path d="M4 10h3.5M4 14h3.5M16.5 10H20M16.5 14H20M10 4v3.5M14 4v3.5M10 16.5V20M14 16.5V20"/></svg></div>
+        <h3>Rust application shell</h3>
+        <p class="tech">Tauri 2 &middot; universal binary</p>
+        <p>The window, the menu and the process are Rust. The web view is a passenger inside it,
+           with no title bar of its own &mdash; the header you drag is the app's own chrome.</p>
+        <ul>
+          <li>aarch64 + x86_64 in one binary</li>
+          <li>macOS 11 Big Sur and later</li>
+          <li>symbols stripped from the release build</li>
+        </ul>
+      </article>
+
+      <article class="card" style="animation-delay:.1s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5A2 2 0 0 1 5 5.5h3.6l2 2H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9.5 14.5h5M12 12v5"/></svg></div>
+        <h3>Native folder bridge</h3>
+        <p class="tech">10 commands &middot; src/folder.rs</p>
+        <p>The reason the desktop build exists. Ten Rust commands give the app real file access,
+           which the web view can never have on its own.</p>
+        <ul>
+          <li>native folder picker, remembered between launches</li>
+          <li>write to a temp file, then rename &mdash; never a half-written save</li>
+          <li>path traversal refused at the boundary</li>
+          <li>dotfiles skipped, so iCloud placeholders stay invisible</li>
+        </ul>
+      </article>
+
+      <article class="card" style="animation-delay:.16s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 18h9.6a3.8 3.8 0 0 0 .4-7.58A5.9 5.9 0 0 0 6.1 9.6 4.2 4.2 0 0 0 7.2 18z"/></svg></div>
+        <h3>iCloud Drive &amp; OneDrive</h3>
+        <p class="tech">your folder, their sync</p>
+        <p>Point it at a folder inside iCloud Drive or OneDrive and the sync client does the rest.
+           The app writes plain files; nothing is uploaded by the app itself.</p>
+        <ul>
+          <li>one JSON file for the ledger</li>
+          <li>receipt photos as ordinary image files beside it</li>
+          <li>open the same folder on another Mac and carry on</li>
+        </ul>
+      </article>
+
+      <article class="card" style="animation-delay:.22s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3 7.4 12 11.8l9-4.4z"/><path d="M3 12.2 12 16.6l9-4.4"/><path d="M3 16.8 12 21.2l9-4.4"/></svg></div>
+        <h3>Five-tier storage ladder</h3>
+        <p class="tech">folder &rarr; OPFS &rarr; IndexedDB &rarr; local</p>
+        <p>The folder is tier zero. If it is missing the app falls down the ladder rather than
+           losing anything, and tells you which rung it is standing on.</p>
+        <ul>
+          <li>conflict detection against a newer copy from another device</li>
+          <li>your version kept in history before anything is overwritten</li>
+          <li>a health read-out per tier, with free space</li>
+        </ul>
+      </article>
+
+      <article class="card" style="animation-delay:.28s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4H8.2a2 2 0 0 0-2 2v3.2a2 2 0 0 1-2 2 2 2 0 0 1 2 2V16a2 2 0 0 0 2 2h1.3M14.5 4h1.3a2 2 0 0 1 2 2v3.2a2 2 0 0 0 2 2 2 2 0 0 0-2 2V16a2 2 0 0 1-2 2h-1.3"/></svg></div>
+        <h3>Mangled frontend</h3>
+        <p class="tech">terser compress + mangle</p>
+        <p>Every name in the shipped script is rewritten before the app is bundled. The build
+           refuses to produce a .dmg if the mangler is missing or the output looks wrong.</p>
+        <ul>
+          <li>one IIFE, no inline handlers, no eval to break</li>
+          <li>build fails rather than shipping readable source</li>
+        </ul>
+      </article>
+
+      <article class="card" style="animation-delay:.34s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 5.9v5.4c0 4 2.9 7.6 7 9.4 4.1-1.8 7-5.4 7-9.4V5.9z"/><path d="m9.2 12.1 1.9 1.9 3.7-3.8"/></svg></div>
+        <h3>Provenance layer</h3>
+        <p class="tech">256 markers &middot; PROVENANCE.json</p>
+        <p>Two hundred and fifty-six unique ownership markers are compiled into the binary and
+           touched at startup so the optimiser cannot discard them.</p>
+        <ul>
+          <li>author, build number and repository in every marker</li>
+          <li>SHA-256 of each shipping file, published with the release</li>
+        </ul>
+      </article>
+
+      <article class="card" style="animation-delay:.4s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.2A8 8 0 0 0 6.5 6.6L4.4 8.5"/><path d="M4 4.6v4.2h4.2"/><path d="M4 12.8a8 8 0 0 0 13.5 4.6l2.1-1.9"/><path d="M20 19.4v-4.2h-4.2"/></svg></div>
+        <h3>Signed update channel</h3>
+        <p class="tech">Ed25519 &middot; minisign</p>
+        <p>The public key is compiled into the app. It will only install an update whose
+           signature matches &mdash; so the channel cannot be hijacked even though the .dmg is unsigned.</p>
+        <ul>
+          <li>manifest checked at launch</li>
+          <li>a bad signature is simply refused</li>
+        </ul>
+      </article>
+
+      <article class="card" style="animation-delay:.46s">
+        <div class="ic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4M12 3.8a13 13 0 0 1 0 16.4 13 13 0 0 1 0-16.4"/><path d="M5.5 18.5 18.5 5.5"/></svg></div>
+        <h3>Offline by construction</h3>
+        <p class="tech">no account &middot; no telemetry</p>
+        <p>There is nothing to sign in to and nowhere for the data to go. The only outbound
+           request the app can make is the update check, and you can leave that alone.</p>
+        <ul>
+          <li>no analytics, no crash reporting, no identifiers</li>
+          <li>works with the network switched off</li>
+        </ul>
+      </article>
+
+    </div>
+  </section>
+
 </div>
 
-<footer>FinanceCalc &middot; &copy; 2026 Zeeshan Saleem &middot; all rights reserved</footer>
+<footer>
+  FinanceCalc &middot; &copy; 2026 Zeeshan Saleem &middot; all rights reserved &middot;
+  <a href="https://github.com/Semtexhigh/FinanceCalc/releases">releases</a>
+</footer>
 
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="gt">
-  <div class="card" id="card">
-    <h2 id="gt">Restricted</h2>
-    <p>Enter the key to continue.</p>
+  <div class="gcard" id="gcard">
+    <h2 id="gt">Owner access <em>restricted</em></h2>
+    <p>This opens the build vault. Everything in it is encrypted &mdash; the password is the key,
+       not a doorman, so there is nothing to read without it.</p>
     <input id="pw" type="password" autocomplete="off" autocapitalize="off"
-           spellcheck="false" aria-label="Key">
+           spellcheck="false" aria-label="Owner password" placeholder="password">
     <p class="err" id="err" role="status"></p>
     <div class="row">
       <button type="button" id="cancel">Cancel</button>
@@ -241,73 +501,149 @@ footer{position:relative;z-index:1;text-align:center;padding:20px 16px 26px;
 <script>
 (function(){
   "use strict";
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---- wordmark, letter by letter ------------------------------------- */
+  /* ---- wordmark, letter by letter, then a permanent slow sway ---------- */
   try{
     var wm=document.getElementById("wm"), t=wm.textContent, i;
     wm.textContent="";
     for(i=0;i<t.length;i++){
       var s=document.createElement("span");
       s.className="ch"; s.textContent=t[i];
-      s.style.animationDelay=(0.05+i*0.035).toFixed(3)+"s";
-      if(i>=7) s.classList.add("sl");          /* "Calc" reads quieter */
+      s.style.animationDelay=(0.05+i*0.035).toFixed(3)+"s,"+(1.2+i*0.14).toFixed(2)+"s";
+      if(i>=7) s.classList.add("sl");
       wm.appendChild(s);
     }
-  }catch(e){ /* markup already renders the name; nothing to recover */ }
+  }catch(e){ /* the markup already carries the name */ }
 
   /* ---- floating specks ------------------------------------------------- */
   try{
     var host=document.getElementById("sparks");
-    var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
     if(host&&!reduce){
-      var n=window.innerWidth<620?14:26;
+      var n=window.innerWidth<620?14:30;
       for(var k=0;k<n;k++){
         var d=document.createElement("div");
         d.className="spark";
         d.style.left=(Math.random()*100).toFixed(2)+"%";
         d.style.bottom=(-10-Math.random()*20).toFixed(2)+"%";
-        d.style.animationDuration=(13+Math.random()*16).toFixed(1)+"s";
-        d.style.animationDelay=(-Math.random()*22).toFixed(1)+"s";
-        d.style.opacity=(0.25+Math.random()*0.5).toFixed(2);
+        d.style.animationDuration=(14+Math.random()*18).toFixed(1)+"s";
+        d.style.animationDelay=(-Math.random()*26).toFixed(1)+"s";
+        d.style.opacity=(0.22+Math.random()*0.5).toFixed(2);
         host.appendChild(d);
       }
     }
   }catch(e){}
 
-  /* ---- button tilts toward the pointer --------------------------------- */
+  /* ---- one pointer listener drives every light effect ------------------
+     Written into custom properties on <html> and read by the background
+     layers, so the work per move is two property writes inside one rAF.  */
+  (function(){
+    if(reduce) return;
+    var root=document.documentElement, qx=0.5, qy=0.35, queued=false;
+    function flush(){
+      queued=false;
+      root.style.setProperty("--mx",qx.toFixed(4));
+      root.style.setProperty("--my",qy.toFixed(4));
+    }
+    window.addEventListener("pointermove",function(ev){
+      qx=ev.clientX/window.innerWidth; qy=ev.clientY/window.innerHeight;
+      if(!queued){ queued=true; requestAnimationFrame(flush); }
+    },{passive:true});
+  })();
+
+  /* ---- the download button tilts toward the pointer -------------------- */
   try{
     var btn=document.getElementById("dl");
-    var reduce2=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if(btn&&!reduce2&&window.matchMedia&&matchMedia("(hover:hover)").matches){
+    if(btn&&!reduce&&window.matchMedia&&matchMedia("(hover:hover)").matches){
       btn.addEventListener("pointermove",function(ev){
         var r=btn.getBoundingClientRect();
         var px=(ev.clientX-r.left)/r.width-0.5;
         var py=(ev.clientY-r.top)/r.height-0.5;
-        btn.style.setProperty("--ry",(px*17).toFixed(2)+"deg");
-        btn.style.setProperty("--rx",(-py*13).toFixed(2)+"deg");
-      });
+        btn.style.setProperty("--ry",(px*18).toFixed(2)+"deg");
+        btn.style.setProperty("--rx",(-py*14).toFixed(2)+"deg");
+      },{passive:true});
       btn.addEventListener("pointerleave",function(){
-        btn.style.setProperty("--ry","0deg");
-        btn.style.setProperty("--rx","0deg");
+        btn.style.setProperty("--ry","0deg"); btn.style.setProperty("--rx","0deg");
       });
     }
   }catch(e){}
 
-  /* ---- the gate --------------------------------------------------------
-     Three right-clicks inside 1.2s opens it. The key is compared as a hash
-     so it is not sitting in plain sight in view-source. This is a curtain,
-     not a lock: the page it guards is a normal URL and the repository is
-     public. Treat it as a shortcut, never as access control.              */
-  var KEY=2087648084, WINDOW_MS=1200, NEED=3;
+  /* ---- the architecture cards tilt and carry a specular highlight ------
+     One delegated listener on the grid, one rAF per frame for the whole
+     set, so eight cards cost the same as one.                            */
+  (function(){
+    if(reduce) return;
+    var grid=document.getElementById("cards");
+    if(!grid||!(window.matchMedia&&matchMedia("(hover:hover)").matches)) return;
+    var live=null, lx=0, ly=0, cx=0, cy=0, queued=false;
+    function flush(){
+      queued=false;
+      if(!live) return;
+      live.style.setProperty("--cry",(cx*9).toFixed(2)+"deg");
+      live.style.setProperty("--crx",(-cy*7).toFixed(2)+"deg");
+      live.style.setProperty("--lx",lx.toFixed(1)+"%");
+      live.style.setProperty("--ly",ly.toFixed(1)+"%");
+    }
+    grid.addEventListener("pointermove",function(ev){
+      var card=ev.target.closest?ev.target.closest(".card"):null;
+      if(!card){ return; }
+      if(live&&live!==card) reset(live);
+      live=card;
+      var r=card.getBoundingClientRect();
+      lx=((ev.clientX-r.left)/r.width)*100;
+      ly=((ev.clientY-r.top)/r.height)*100;
+      cx=(ev.clientX-r.left)/r.width-0.5;
+      cy=(ev.clientY-r.top)/r.height-0.5;
+      if(!queued){ queued=true; requestAnimationFrame(flush); }
+    },{passive:true});
+    function reset(c){
+      c.style.setProperty("--cry","0deg"); c.style.setProperty("--crx","0deg");
+    }
+    grid.addEventListener("pointerleave",function(){
+      if(live){ reset(live); live=null; }
+    });
+  })();
+
+  /* ---- the counters count, once, when they come into view -------------- */
+  (function(){
+    var targets=[["n1",151],["n2",10],["n3",256],["n4",0]];
+    function paint(el,v){ el.textContent=v.toLocaleString("en-GB"); }
+    function run(){
+      targets.forEach(function(pair){
+        var el=document.getElementById(pair[0]); if(!el) return;
+        var to=pair[1];
+        if(reduce||to===0){ paint(el,to); return; }
+        var t0=null, dur=1100;
+        function step(ts){
+          if(t0===null) t0=ts;
+          var p=Math.min(1,(ts-t0)/dur);
+          paint(el,Math.round(to*(1-Math.pow(1-p,3))));
+          if(p<1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    }
+    var strip=document.querySelector(".stats");
+    if(!strip||!("IntersectionObserver" in window)){ run(); return; }
+    var io=new IntersectionObserver(function(es){
+      if(es.some(function(e){return e.isIntersecting;})){ io.disconnect(); run(); }
+    },{threshold:.3});
+    io.observe(strip);
+  })();
+
+  /* ====================================================================
+     the owner gate
+     Three right-clicks inside 1.2s open it.  The password is not checked
+     here and no hash of it is stored on this page: it is handed to the
+     vault, which uses it to derive the key that decrypts the payloads.
+     A wrong password does not get refused by a comparison, it simply
+     fails to decrypt anything.
+     ==================================================================== */
+  var WINDOW_MS=1200, NEED=3;
   var hits=0, timer=null;
   var ov=document.getElementById("ov"), pw=document.getElementById("pw"),
-      err=document.getElementById("err"), card=document.getElementById("card");
+      err=document.getElementById("err"), gcard=document.getElementById("gcard");
 
-  function hash(s){
-    var h=5381;
-    for(var i=0;i<s.length;i++){ h=((h*33)^s.charCodeAt(i))>>>0; }
-    return h;
-  }
   function open_(){
     ov.classList.add("on"); err.textContent=""; pw.value="";
     setTimeout(function(){ try{pw.focus();}catch(e){} },40);
@@ -315,7 +651,7 @@ footer{position:relative;z-index:1;text-align:center;padding:20px 16px 26px;
   function close_(){ ov.classList.remove("on"); hits=0; }
 
   document.addEventListener("contextmenu",function(ev){
-    if(ov.classList.contains("on")) return;      /* let the field behave normally */
+    if(ov.classList.contains("on")) return;     /* let the field behave normally */
     ev.preventDefault();
     hits++;
     clearTimeout(timer);
@@ -324,16 +660,17 @@ footer{position:relative;z-index:1;text-align:center;padding:20px 16px 26px;
   });
 
   function submit(){
-    if(hash(pw.value)===KEY){
-      err.textContent="ok";
-      location.href="./versions.html";
+    var v=pw.value;
+    if(!v){
+      err.textContent="Type the password.";
+      gcard.classList.remove("bad"); void gcard.offsetWidth; gcard.classList.add("bad");
       return;
     }
-    err.textContent="Not that one.";
-    card.classList.remove("bad");
-    void card.offsetWidth;                        /* restart the shake */
-    card.classList.add("bad");
-    pw.select();
+    /* Handed over in the session, not the URL, so it never reaches a
+       server log, a referrer header or the browser's history. */
+    try{ sessionStorage.setItem("fc.vault.pw",v); }catch(e){}
+    err.textContent="opening…";
+    location.href="./vault.html";
   }
   document.getElementById("go").addEventListener("click",submit);
   document.getElementById("cancel").addEventListener("click",close_);
