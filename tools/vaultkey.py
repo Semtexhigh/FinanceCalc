@@ -93,13 +93,16 @@ def main():
             sys.exit("expected NAME=PASSWORD, got: " + pair)
         return pair.split("=", 1)
 
+    written = {}
     if a.only:
         slots.clear()
         for name, pw in map(split, a.only):
             slots[name] = wrap(data_key, pw, iters)
+            written[name] = pw
             print("  set   ", name)
     for name, pw in map(split, a.add):
         slots[name] = wrap(data_key, pw, iters)
+        written[name] = pw
         print("  added ", name)
     for name in a.drop:
         if slots.pop(name, None) is None:
@@ -110,12 +113,13 @@ def main():
     if not slots:
         sys.exit("refusing to leave the vault with no way in")
 
-    # prove every remaining slot still yields the same key before writing
-    for name, slot in slots.items():
-        try:
-            k = AESGCM(derive(PASSWORDS[name], b64d(slot["salt"]), iters)) if False else None
-        except Exception:
-            pass
+    # every slot written in this run must hand back the same data key, or the
+    # manifest is not touched at all
+    for name, pw in written.items():
+        _, got = unwrap({"iterations": iters, "slots": {name: slots[name]}}, pw)
+        if got != data_key:
+            sys.exit("slot %s did not round-trip - nothing written" % name)
+    print("  verified", len(written), "new slot(s)")
 
     man["slots"] = slots
     with open(a.manifest, "w") as fh:
