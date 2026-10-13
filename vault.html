@@ -214,6 +214,46 @@ footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-si
   .row{grid-template-columns:44px minmax(0,1fr) auto;gap:10px}
   .row .sz,.row .ln{display:none}
 }
+
+/* ====================================================================== */
+/* terms of use                                                            */
+/* ====================================================================== */
+.tos-link{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.25);
+  transition:color .16s,text-decoration-color .16s}
+.tos-link:hover{color:var(--dim);text-decoration-color:currentColor}
+.tos-link:focus-visible{outline:1px solid var(--line2);outline-offset:4px;border-radius:3px}
+.tos{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.82);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:16px}
+.tos.on{display:flex;animation:tosfade .22s var(--ease)}
+@keyframes tosfade{from{opacity:0}to{opacity:1}}
+.tosbox{width:min(780px,100%);max-height:86svh;display:flex;flex-direction:column;border-radius:18px;
+  border:1px solid var(--line2);
+  background:linear-gradient(180deg,rgba(255,255,255,.055),transparent 30%),rgba(14,14,16,.97);
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 38px 90px rgba(0,0,0,.82);
+  animation:tospop .34s var(--spring)}
+@keyframes tospop{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+.toshead{padding:22px 26px 16px;border-bottom:1px solid var(--line)}
+.toshead h2{margin:0 0 5px;font-size:15px;font-weight:600;color:var(--fg)}
+.toshead p{margin:0;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.tosbody{overflow:auto;overscroll-behavior:contain;padding:20px 26px 24px;
+  font-size:12px;line-height:1.8;color:var(--dim)}
+.tosbody h3{margin:22px 0 7px;font-size:12px;font-weight:600;color:var(--fg)}
+.tosbody h3:first-child{margin-top:0}
+.tosbody p{margin:0 0 11px}
+.tosbody ol{margin:0 0 11px;padding-left:19px}
+.tosbody ol li{margin:0 0 8px;padding-left:3px}
+.tosbody strong{color:var(--fg);font-weight:600}
+.tosbody em{font-style:normal;color:var(--fg)}
+.tosfoot{padding:14px 26px 18px;border-top:1px solid var(--line);display:flex;
+  align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.tosfoot span{font-size:10.5px;color:var(--faint)}
+.tosfoot button{padding:10px 18px;border-radius:10px;border:1px solid #ececed;background:#ececed;
+  color:#0a0a0b;font:12px var(--mono);font-weight:600;cursor:pointer;
+  transition:transform .15s var(--ease),background .15s}
+.tosfoot button:hover{background:#fff}
+.tosfoot button:active{transform:scale(.96)}
 </style>
 </head>
 <body>
@@ -304,8 +344,8 @@ footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-si
 
 </main>
 
-<footer id="foot" style="display:none">FinanceCalc &middot; &copy; 2026 Zeeshan Saleem &middot;
-  proprietary &mdash; no licence is granted to copy, redistribute, decompile or derive from this work</footer>
+<footer id="foot">FinanceCalc &middot;
+  <button type="button" class="tos-link" id="tosOpen">Terms of Use</button></footer>
 
 <!-- ---------------------------------------------------------- source viewer -->
 <div class="look" id="look" role="dialog" aria-modal="true">
@@ -315,6 +355,142 @@ footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-si
     <button class="btn sm" id="lookclose" type="button">Close</button>
   </div>
   <div class="lookbody"><div id="lookpre"></div></div>
+</div>
+
+<div class="tos" id="tos" role="dialog" aria-modal="true" aria-labelledby="tosTitle">
+  <div class="tosbox">
+    <div class="toshead">
+      <h2 id="tosTitle">Terms of Use</h2>
+      <p>binding &middot; read before downloading</p>
+    </div>
+    <div class="tosbody" id="tosBody" tabindex="0">
+
+      <p>These terms govern FinanceCalc (also called &ldquo;My Money&rdquo;) and every build, source file, binary, archive and encrypted payload published on this site (the <em>Software</em>).
+         They are a licence, not a sale. Last updated 13 October 2026.</p>
+
+      <h3>1. Acceptance</h3>
+      <p>By downloading, installing, opening, running or otherwise using the Software, or by
+         requesting, decrypting or opening any file published on this site, you agree to every
+         term below in full. If you do not agree, do not download, install, open or run the
+         Software, and delete any copy you hold.</p>
+
+      <h3>2. Ownership</h3>
+      <p>The Software is the original and exclusive work of Zeeshan Saleem.
+         <strong>Copyright &copy; 2026 Zeeshan Saleem. All rights reserved worldwide.</strong>
+         Every part of it is his and remains his: the source code, the compiled binaries, the
+         encrypted payloads, the build history, the structure, the logic, the algorithms, the data
+         formats, the interface, the layout, the wording and the names. Making the Software
+         available transfers nothing. Nothing in these terms grants you any ownership of anything.</p>
+
+      <h3>3. What you may do</h3>
+      <p>Subject to these terms you are granted a <strong>personal, non&#8209;exclusive,
+         non&#8209;transferable, non&#8209;sublicensable, revocable licence</strong> to install and
+         run the compiled application on a device you own, for your own personal use. That is the
+         entire permission given. <strong>Every right not expressly granted here is reserved.</strong></p>
+
+      <h3>4. What you may not do</h3>
+      <p>You must not, in whole or in part, alone or through anyone else, whether or not for
+         commercial gain:</p>
+      <ol type="a">
+        <li><strong>Reverse engineer</strong> &mdash; reverse engineer, decompile, disassemble,
+            deobfuscate, de&#8209;minify, unminify, beautify, unpack, re&#8209;map, rename or
+            otherwise attempt to derive, reconstruct or recover source code, structure, logic or
+            design from any compiled, minified, mangled, obfuscated or encrypted form of the
+            Software.</li>
+        <li><strong>Break the protection</strong> &mdash; circumvent, disable, bypass, remove,
+            interfere with or attempt to defeat any encryption, password, key, gate, licence check,
+            obfuscation, mangling, watermark, ownership marker or other technical protection
+            measure, or help anyone else to do so, or publish anything that helps anyone do so.</li>
+        <li><strong>Inspect the running program</strong> &mdash; dump, intercept, instrument, debug,
+            hook, patch, emulate, trace or inspect the Software's memory, process, files or network
+            behaviour in order to understand, document or reproduce how it works.</li>
+        <li><strong>Distribute it</strong> &mdash; copy, publish, redistribute, mirror, host,
+            upload, share, lend, rent, lease, sell, resell, sublicense, assign or otherwise make the
+            Software or any part of it available to any other person or system.</li>
+        <li><strong>Change it</strong> &mdash; modify, adapt, translate, port, fork or create any
+            derivative work.</li>
+        <li><strong>Reuse any of it</strong> &mdash; reuse any portion of the code, design,
+            structure, data format or wording in any other product, project, repository, article or
+            publication.</li>
+        <li><strong>Train on it</strong> &mdash; use the Software, its source, its output or its
+            interface as training data, fine&#8209;tuning data, evaluation data, retrieval corpus,
+            embedding source or input of any kind for any machine&#8209;learning model, artificial
+            intelligence system, dataset or scraper.</li>
+        <li><strong>Harvest it</strong> &mdash; access, crawl, index, mirror or download any file on
+            this site by automated means.</li>
+        <li><strong>Strip the notices</strong> &mdash; remove, obscure or alter any copyright
+            notice, ownership marker, provenance record, hash manifest or these terms.</li>
+        <li><strong>Publish about its internals</strong> &mdash; publish any teardown, decompilation,
+            internals analysis or description of how the Software is implemented.</li>
+        <li>Use the Software in any way that breaks any law that applies to you.</li>
+      </ol>
+
+      <h3>5. Encrypted material</h3>
+      <p>Files published here in encrypted form are protected works. Holding the ciphertext does not
+         grant a licence. Holding, obtaining or guessing a password does not grant a licence.
+         <strong>Access is not permission.</strong> Any decryption, attempted decryption, extraction
+         or distribution of those files by anyone other than the owner, or a person the owner has
+         authorised in writing for a stated purpose, is unauthorised, is a breach of these terms,
+         and engages the technical&#8209;protection&#8209;measure provisions of applicable copyright
+         law.</p>
+
+      <h3>6. Ownership markers</h3>
+      <p>The Software carries embedded ownership markers and a published record of file hashes. They
+         are deliberate and they are part of the work. Removing, altering or defeating them
+         transfers no right and is itself a breach of these terms.</p>
+
+      <h3>7. Your data</h3>
+      <p>The Software keeps your data on your own device and in folders you choose. The owner never
+         receives it, has no access to it, and is not responsible for its backup, loss, corruption
+         or disclosure. Keeping your own backup is your responsibility.</p>
+
+      <h3>8. No warranty</h3>
+      <p>The Software is provided <strong>&ldquo;as is&rdquo; and &ldquo;as available&rdquo;</strong>,
+         with no warranty of any kind, express or implied, including merchantability, fitness for a
+         particular purpose, accuracy and non&#8209;infringement. It is not financial, accounting,
+         tax, legal or investment advice, and no figure it produces should be relied on for any
+         financial, tax or legal decision. You use it entirely at your own risk.</p>
+
+      <h3>9. Liability</h3>
+      <p>To the fullest extent the law allows, the owner is not liable for any loss or damage of any
+         kind arising from the Software, its use, or any inability to use it &mdash; including lost
+         or corrupted data, lost profit, lost savings, business interruption, or any indirect,
+         incidental, special, punitive or consequential loss &mdash; even if the possibility was
+         known.</p>
+
+      <h3>10. Termination</h3>
+      <p>The licence in clause 3 ends immediately, without notice, if you breach any part of these
+         terms. On termination you must stop using the Software and permanently delete every copy
+         you hold, in every form. Clauses 2, 4, 5, 6, 8, 9, 11 and 12 survive termination.</p>
+
+      <h3>11. Enforcement</h3>
+      <p>A breach of clause 4 or clause 5 causes harm that damages alone may not remedy, and the
+         owner is entitled to seek <strong>injunctive relief</strong> in addition to any other
+         remedy, without needing to post security or prove actual loss. No delay or failure to
+         enforce any term waives it. Permission beyond these terms must be obtained from the owner
+         in writing, in advance.</p>
+
+      <h3>12. General</h3>
+      <p>These terms are the whole agreement about the Software and replace anything published or
+         said earlier. They may be updated at any time; the version published here when you obtain
+         or use a copy is the version that applies to it. If any clause is held unenforceable it is
+         to be read as narrowly as needed to be enforceable and the rest stands. These terms are
+         governed by the federal laws of the United Arab Emirates and the laws of the Emirate of
+         Dubai, and the courts of Dubai have exclusive jurisdiction.</p>
+
+      <h3>13. Rights that cannot be waived</h3>
+      <p>Where the law that applies to you gives you a right that cannot be excluded or limited by
+         agreement &mdash; for instance a narrow statutory right to decompile solely to achieve
+         interoperability, or a consumer right that cannot be waived &mdash; the restrictions above
+         apply only so far as that law permits. Nothing here is intended to ask you to give up a
+         right you cannot lawfully give up.</p>
+
+    </div>
+    <div class="tosfoot">
+      <span>&copy; 2026 Zeeshan Saleem &middot; all rights reserved</span>
+      <button type="button" id="tosClose">I understand</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -477,7 +653,6 @@ footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-si
   $("relock").addEventListener("click", function(){
     KEY = null; MAN = null; ITEMS = []; current = null;
     $("dash").classList.remove("on");
-    $("foot").style.display = "none";
     $("lock").style.display = "flex";
     $("unlock").disabled = false;
     $("pw").value = ""; setMsg("Locked. The key is gone from this tab.");
@@ -799,6 +974,24 @@ footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-si
       }
     }, {passive:true});
   }
+  /* ---- terms of use --------------------------------------------------- */
+  (function(){
+    var box=document.getElementById("tos"), open=document.getElementById("tosOpen"),
+        shut=document.getElementById("tosClose");
+    if(!box||!open) return;
+    function show(){
+      box.classList.add("on");
+      var b=document.getElementById("tosBody"); if(b) b.scrollTop=0;
+      setTimeout(function(){ try{ shut.focus(); }catch(e){} },40);
+    }
+    function hide(){ box.classList.remove("on"); }
+    open.addEventListener("click",show);
+    if(shut) shut.addEventListener("click",hide);
+    box.addEventListener("click",function(ev){ if(ev.target===box) hide(); });
+    document.addEventListener("keydown",function(ev){
+      if(ev.key==="Escape"&&box.classList.contains("on")) hide();
+    });
+  })();
 })();
 </script>
 </body>
