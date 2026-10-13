@@ -4,3 +4,4 @@ src-tauri/src/provenance.rs
 src-tauri/icons/
 dist/
 tools/__pycache__/
+src-tauri/Cargo.lock
