@@ -5,7 +5,7 @@ The UI is carried over byte-for-byte apart from an ownership header prepended as
 an HTML comment and a small marker block appended before </body>. Nothing visible
 changes, and no behaviour changes.
 
-Copyright (c) 2026. All rights reserved.
+Copyright (c) 2026 Semtexhigh. All rights reserved.
 """
 import hashlib, os, sys, json, re, shutil, subprocess, tempfile
 

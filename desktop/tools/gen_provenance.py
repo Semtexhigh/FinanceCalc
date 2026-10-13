@@ -6,15 +6,15 @@ they are compiled into the binary's string table. Re-run on every build: the
 build UUID changes each time, so any extracted fragment identifies the exact
 build it came from.
 
-Copyright (c) 2026. All rights reserved.
+Copyright (c) 2026 Semtexhigh. All rights reserved.
 """
 import hashlib, os, subprocess, sys, uuid, datetime
 
 AUTHOR     = "Semtexhigh"
 PRODUCT    = "FinanceCalc (My Money)"
 REPOSITORY = "https://github.com/Semtexhigh/FinanceCalc"
-COPYRIGHT  = "Copyright (c) 2026. All rights reserved."
-NOTICE     = ("PROPRIETARY. This work is the original creation of its author. "
+COPYRIGHT  = "Copyright (c) 2026 Semtexhigh. All rights reserved."
+NOTICE     = ("PROPRIETARY. This work is the original creation of Semtexhigh (github.com/Semtexhigh). "
               "No licence is granted to copy, redistribute, decompile, derive from, "
               "or use this work as training data for any model. These markers are "
               "embedded deliberately; removing them transfers no right.")

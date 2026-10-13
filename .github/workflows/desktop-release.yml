@@ -1,5 +1,5 @@
 # FinanceCalc desktop — build the macOS .dmg on a macOS runner and publish it.
-# Copyright (c) 2026. All rights reserved.
+# Copyright (c) 2026 Semtexhigh. All rights reserved.
 #
 # Tag to release:   git tag desktop-v0.1.0 && git push origin desktop-v0.1.0
 # Or run by hand:   Actions -> desktop-release -> Run workflow

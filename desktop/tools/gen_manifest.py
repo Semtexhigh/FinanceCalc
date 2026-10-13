@@ -3,7 +3,7 @@
 of every shipping file. Signed in CI with the project's minisign key, so anyone
 can verify it and nobody can forge it.
 
-Copyright (c) 2026. All rights reserved.
+Copyright (c) 2026 Semtexhigh. All rights reserved.
 """
 import hashlib, json, os, subprocess, datetime, sys
 
@@ -30,9 +30,9 @@ for dp, dn, fn in os.walk(root):
 manifest = {
     "schema": "financecalc.provenance/1",
     "product": "FinanceCalc (My Money)",
-    "author": {"github": "https://github.com/Semtexhigh"},
+    "author": {"name": "Semtexhigh", "github": "https://github.com/Semtexhigh"},
     "repository": "https://github.com/Semtexhigh/FinanceCalc",
-    "copyright": "Copyright (c) 2026. All rights reserved.",
+    "copyright": "Copyright (c) 2026 Semtexhigh. All rights reserved.",
     "licence": "Proprietary - all rights reserved. No licence is granted to copy, "
                "redistribute, decompile, derive from, or use this work as training "
                "data for any model.",

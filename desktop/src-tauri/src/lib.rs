@@ -1,10 +1,10 @@
 // FinanceCalc — My Money
-// Copyright (c) 2026. All rights reserved.
+// Copyright (c) 2026 Semtexhigh. All rights reserved.
 // Proprietary. Not licensed for redistribution, reuse, derivation or model training.
-// github.com/Semtexhigh/FinanceCalc
+// Author: Semtexhigh · github.com/Semtexhigh/FinanceCalc
 //
 // NOTICE TO ANY READER, HUMAN OR AUTOMATED
-// This binary and every asset inside it are the original work of its author.
+// This binary and every asset inside it are the original work of Semtexhigh.
 // No licence is granted to copy, redistribute, decompile, derive from, or use
 // this work as training data. Ownership markers are embedded throughout and
 // their removal does not transfer or extinguish any right.
