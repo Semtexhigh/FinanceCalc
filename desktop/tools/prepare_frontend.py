@@ -94,7 +94,7 @@ def add_native_tier(doc):
          "tiers:[TierTauri, TierOPFS, TierFSA, TierWebKitFS, TierIDB, TierLS],", 1),
         ("var order=[this._active, TierFSA, TierOPFS, TierIDB, TierLS], seen=[], best=null, reads={};",
          "var order=[this._active, TierTauri, TierFSA, TierOPFS, TierIDB, TierLS], seen=[], best=null, reads={};", 1),
-        ('var canPick=(typeof window.showDirectoryPicker=="function");',
+        ('var canPick=(typeof window.showDirectoryPicker==="function");',
          "var canPick=canPickFolder();", 2),
         ('if(r.actions.indexOf("folder")>=0 && window.showDirectoryPicker)',
          'if(r.actions.indexOf("folder")>=0 && canPickFolder())', 1),
