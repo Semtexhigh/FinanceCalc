@@ -1,5 +1,5 @@
 # FinanceCalc — complete version history
-https://projectbergmannstrasse.github.io/FinanceCalc/
+https://Semtexhigh.github.io/FinanceCalc/
 150 builds, **v1.0 to v39.8**, oldest to newest.
 
 Files are numbered `001` upward so they sort chronologically in any file browser.
