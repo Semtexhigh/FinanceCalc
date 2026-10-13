@@ -17,6 +17,7 @@ os.makedirs(dist, exist_ok=True)
 
 html = open(src, encoding="utf-8").read()
 orig_sha = hashlib.sha256(html.encode()).hexdigest()
+orig_len = len(html.encode())   # captured before the desktop edits below mutate `html`
 
 def const(name):
     for line in open(prov, encoding="utf-8"):
@@ -43,10 +44,31 @@ marker = (
                   "sourceSha256": orig_sha, "buildId": build_id, "commit": commit})
     + "</script>\n"
 )
+# The desktop window hides the macOS title bar (titleBarStyle "Overlay"), so the
+# traffic lights float over the top-left of the page and would sit on top of the
+# "My Money" brand. Give the app's own header room for them, and make that header
+# the drag handle so the window can still be moved without a title bar.
+# Scoped to the desktop build only - the web version is untouched.
+shell = (
+    "\n<style id=\"fc-desktop-shell\">\n"
+    "  header{padding-top:26px}\n"
+    "  [data-tauri-drag-region]{-webkit-user-select:none;user-select:none;cursor:default}\n"
+    "  @media(prefers-reduced-motion:reduce){*,*::before,*::after{"
+    "animation-duration:.01ms!important;transition-duration:.01ms!important}}\n"
+    "</style>\n"
+)
+
+# Only the real <body> header, and only once.
+if "<header>" in html:
+    html = html.replace("<header>", "<header data-tauri-drag-region>", 1)
+else:
+    print("  WARNING: no <header> found - window will have no drag handle")
+
 # NOTE: FinanceCalc.html builds an export document inside a JS string that also
 # contains "</body>". Splicing at the FIRST match lands inside that string literal
 # and breaks the script. Always use the LAST occurrence, which is the real one.
 i = html.rfind("</body>")
-out = header + (html[:i] + marker + html[i:] if i != -1 else html + marker)
+tail = shell + marker
+out = header + (html[:i] + tail + html[i:] if i != -1 else html + tail)
 open(os.path.join(dist, "index.html"), "w", encoding="utf-8").write(out)
-print(f"dist/index.html  source {len(html.encode())}B sha {orig_sha[:10]}  ->  {len(out.encode())}B")
+print(f"dist/index.html  source {orig_len}B sha {orig_sha[:10]}  ->  {len(out.encode())}B")
