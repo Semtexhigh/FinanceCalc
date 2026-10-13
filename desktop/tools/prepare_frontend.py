@@ -127,8 +127,34 @@ def add_native_tier(doc):
     return doc
 
 
+def add_native_http(doc):
+    """Route the AI provider calls through the Rust shell.
+
+    Inside the app a plain fetch to a provider dies in CORS preflight, so a
+    correct API key failed in exactly the same way as a wrong one and the app
+    could only report that communication failed. net.rs makes the request from
+    Rust instead, where there is no origin and nothing to preflight.
+
+    Like the storage tier, this is desktop-only and lives in the build rather
+    than in the app source.
+    """
+    shim = open(os.path.join(root, "desktop", "tools", "native_http.js"),
+                encoding="utf-8").read()
+    marker = "</body>"
+    i = doc.rfind(marker)
+    if i < 0:
+        raise SystemExit("prepare_frontend: no </body> to attach the native http shim to")
+    tag = "<script>\n" + shim + "\n</script>\n"
+    print(f"  native http shim spliced in ({len(shim)} chars)")
+    return doc[:i] + tag + doc[i:]
+
+
 html = add_native_tier(html)
 html = minify(html)
+# After minify, not before: minify grabs the app's single inline <script> with a
+# greedy match, so a second <script> block added first would hand terser the HTML
+# sitting between the two blocks.
+html = add_native_http(html)
 
 def const(name):
     for line in open(prov, encoding="utf-8"):

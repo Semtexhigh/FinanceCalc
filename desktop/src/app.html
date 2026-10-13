@@ -17745,6 +17745,11 @@ AI_TYPES.join(", "),
     {key:"id",re:/\bposition\b|\bdeal\b|\border\b|\bticket\b|^#$/i}];
   var MTOCR_TIME=/\d{1,2}[.:]\d{2}([.:]\d{2})?/;
   var MTOCR_DIR=/^(buy|sell)$/i;
+  /* Strip whatever separators a terminal used before testing a token: plain
+     spaces, the non-breaking and narrow non-breaking spaces Windows emits,
+     and commas. Testing with commas alone meant "-164 800.00" did not look
+     like a number at all, and whole trade rows were thrown away. */
+  function mtClean(v){ return String(v==null?"":v).replace(/[\s\u00a0\u202f\u2007\u2009,]/g,"").trim(); }
   var MTOCR_NUM=/^-?\d[\d,]*\.\d+$/;
   var MTOCR_INT=/^\d{4,}$/;
   // a market code has to BE the symbol (one or two codes, or an index + number), not just
@@ -17795,15 +17800,30 @@ AI_TYPES.join(", "),
     cells.push(cur);
     return cells.map(function(c){return{text:c.map(function(w){return w.text;}).join(" ").trim(),x:c[0].x};});
   }
+  /* MT4/MT5 formats numbers by the machine's locale, so the thousands
+     separator is very often a space: "-164 800.00", "5 000 000.00". OCR
+     returns each group as its own word, and every group after the first was
+     read as a separate number - a -164,800.00 loss arrived as 800.00 and a
+     5,000,000.00 deposit as 5. Join a 1-3 digit head to the 3-digit groups
+     that follow while the gaps stay tight, taking the decimal tail with the
+     last group. It chains, so three groups work as well as two. */
   function mtOcrStitch(sortedWords){
     var out=[];
     for(var i=0;i<sortedWords.length;i++){
-      var w=sortedWords[i], nxt=sortedWords[i+1];
-      if(nxt && /^-?\d{1,3}$/.test(w.text.trim()) && /^\d+\.\d+$/.test(nxt.text.trim())){
-        if(nxt.x-(w.x+w.w) < Math.max(20,w.h)){
-          out.push({text:w.text.trim()+nxt.text.trim(),x:w.x,y:Math.min(w.y,nxt.y),
-                    w:(nxt.x+nxt.w-w.x),h:Math.max(w.h,nxt.h)});
-          i++; continue;
+      var w=sortedWords[i];
+      if(/^-?\d{1,3}$/.test(String(w.text).trim())){
+        var txt=String(w.text).trim(), last=w, j=i+1, joined=0;
+        while(j<sortedWords.length){
+          var n=sortedWords[j], t=String(n.text).trim();
+          if(n.x-(last.x+last.w) >= Math.max(20,last.h)) break;   /* a column gap, not a separator */
+          if(/^\d{3}$/.test(t)){ txt+=t; last=n; j++; joined++; continue; }
+          if(/^\d{3}[.,]\d+$/.test(t)){ txt+=t; last=n; j++; joined++; break; }
+          break;
+        }
+        if(joined){
+          out.push({text:txt,x:w.x,y:Math.min(w.y,last.y),
+                    w:(last.x+last.w-w.x),h:Math.max(w.h,last.h)});
+          i=j-1; continue;
         }
       }
       out.push(w);
@@ -17813,7 +17833,7 @@ AI_TYPES.join(", "),
   function mtOcrParse(words){
     if(!words.length) return {trades:[],isStatement:false};
     var rowsData=mtOcrRows(words)
-      .map(function(r){return r.slice().sort(function(a,b){return a.x-b.x;});})
+      .map(function(r){return mtOcrStitch(r.slice().sort(function(a,b){return a.x-b.x;}));})
       .sort(function(a,b){
         var ay=Math.min.apply(null,a.map(function(w){return w.y;}));
         var by=Math.min.apply(null,b.map(function(w){return w.y;}));
@@ -17883,7 +17903,7 @@ AI_TYPES.join(", "),
         if(cells===headerRow || rd===summaryRow) return;
         // test WORDS, not cells: on a normal-width statement a whole row merges into one or two
         // cells, so no cell was ever a bare number and every trade row was thrown away
-        if(!rd.words.some(function(w){return MTOCR_NUM.test(String(w.text).trim().replace(/,/g,""));})) return;
+        if(!rd.words.some(function(w){return MTOCR_NUM.test(mtClean(w.text));})) return;
         if(cells.length && SUMMARY.test(cells[0].text.trim())) return;
         if(rd.words.some(function(w){ return SUMMARY.test(w.text.trim()); }) && cells.length<=3) return;
         // a balance / deposit / credit line is never a trade, however many columns it fills
@@ -17910,8 +17930,8 @@ AI_TYPES.join(", "),
             /* the P/L column sits last; a merged neighbour can donate a number,
                so keep the right-most one found in that column. Two decimals joined
                ("0.00 52.00" -> 0.0052) is a merge, never one number. */
-            var pw=raw.split(/\s+/).filter(function(x){ return MTOCR_NUM.test(x.replace(/,/g,"")); });
-            if(pw.length>1) num=parseFloat(pw[pw.length-1].replace(/,/g,""));
+            var pw=raw.split(/\s+/).filter(function(x){ return MTOCR_NUM.test(mtClean(x)); });
+            if(pw.length>1) num=aiNum(pw[pw.length-1]);
             t.profit=num; filled++;
           }
           else if(key==="id"){
@@ -17957,16 +17977,16 @@ AI_TYPES.join(", "),
         var volCell=null;
         for(var k=dirIdx+1;k<cells.length;k++){
           if(symIdx>=0 && k>=symIdx) break;              // lots come before the symbol
-          var r2=cells[k].text.trim().replace(/,/g,"");
+          var r2=mtClean(cells[k].text);
           if(!MTOCR_NUM.test(r2)||MTOCR_INT.test(r2)) continue;
-          var v=parseFloat(r2);
+          var v=aiNum(cells[k].text);
           if(v>0 && v<1000){ t.volume=v; volCell=cells[k]; break; }   // never negative
         }
         var nums=cells.filter(function(c){
-          var raw=c.text.trim().replace(/,/g,"");
+          var raw=mtClean(c.text);
           return MTOCR_NUM.test(raw)&&!MTOCR_INT.test(raw)&&c!==volCell;
         });
-        if(nums.length) t.profit=parseFloat(nums[nums.length-1].text.trim().replace(/,/g,""));
+        if(nums.length) t.profit=aiNum(nums[nums.length-1].text);
         // v1.98 STRICT WHITELIST: a header-less row only counts as a trade if it has a
         // REAL instrument (mtOcrInstrument) AND a buy/sell direction. A bare number grid
         // (e.g. an Apple Notes table) has neither -> "not MT4/MT5, ignored". This

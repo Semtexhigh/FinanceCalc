@@ -10,6 +10,7 @@
 // their removal does not transfer or extinguish any right.
 
 mod folder;
+mod net;
 mod provenance;
 
 use serde::Serialize;
@@ -74,7 +75,8 @@ pub fn run() {
             folder::fc_write_bytes,
             folder::fc_list,
             folder::fc_remove,
-            folder::fc_stat
+            folder::fc_stat,
+            net::fc_http
         ])
         .run(tauri::generate_context!())
         .expect("error while running FinanceCalc");
