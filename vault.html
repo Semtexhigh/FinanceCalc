@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FinanceCalc — build vault</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<style>
+/* ---------------------------------------------------------------------------
+   FinanceCalc — owner build vault
+   Copyright (c) 2026 Zeeshan Saleem. All rights reserved.
+
+   This page ships with no source in it.  Every build, every source file and
+   every archive is stored elsewhere as AES-256-GCM ciphertext; the password
+   derives the key that opens it.  Getting past the prompt by editing this
+   page gets you a list of filenames and nothing else.
+--------------------------------------------------------------------------- */
+:root{
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --bg:#060607; --fg:#f5f5f6; --dim:#9c9ca0; --faint:#5e5e63;
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.17);
+  --glass:rgba(26,26,30,.5); --glass2:rgba(36,36,41,.46);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --mx:.5; --my:.3;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:13.5px/1.6 var(--mono);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden}
+
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(74px);will-change:transform}
+.b1{width:60vmax;height:60vmax;left:-22vmax;top:-26vmax;opacity:.88;
+  background:radial-gradient(circle at 40% 40%,rgba(255,255,255,.28),rgba(255,255,255,.055) 42%,transparent 66%);
+  animation:drift1 36s var(--ease) infinite alternate}
+.b2{width:50vmax;height:50vmax;right:-18vmax;top:18vmax;opacity:.8;
+  background:radial-gradient(circle at 60% 40%,rgba(255,255,255,.22),rgba(255,255,255,.045) 44%,transparent 66%);
+  animation:drift2 46s var(--ease) infinite alternate}
+@keyframes drift1{to{transform:translate3d(12vmax,10vmax,0) scale(1.16)}}
+@keyframes drift2{to{transform:translate3d(-14vmax,8vmax,0) scale(.88)}}
+.lamp{position:absolute;inset:0;background:radial-gradient(600px circle at calc(var(--mx)*100%) calc(var(--my)*100%),rgba(255,255,255,.12),rgba(255,255,255,.028) 42%,transparent 74%)}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse 94% 82% at 50% 36%,transparent 46%,rgba(0,0,0,.66) 100%)}
+
+/* ====================================================================== */
+/* the lock screen                                                         */
+/* ====================================================================== */
+.lock{position:relative;z-index:2;min-height:100svh;display:flex;align-items:center;
+  justify-content:center;padding:20px}
+.lockcard{width:min(420px,100%);border-radius:20px;padding:30px;
+  border:1px solid var(--line2);
+  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 42%),rgba(17,17,19,.9);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 34px 80px rgba(0,0,0,.76);
+  animation:pop .4s var(--spring)}
+@keyframes pop{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+.lockcard .padlock{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;
+  justify-content:center;color:#dcdce0;margin:0 0 18px;
+  background:linear-gradient(180deg,#303034,#191a1c);border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 8px 18px rgba(0,0,0,.6);
+  animation:breathe 4.6s var(--ease) infinite}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.lockcard h1{margin:0 0 7px;font-size:17px;font-weight:600;letter-spacing:-.02em}
+.lockcard .lede{margin:0 0 20px;font-size:12px;color:var(--faint);line-height:1.7}
+.lockcard input{width:100%;padding:14px 15px;border-radius:11px;border:1px solid var(--line2);
+  background:rgba(0,0,0,.52);color:var(--fg);font:14px var(--mono);letter-spacing:.14em}
+.lockcard input:focus{outline:0;border-color:#6d6d72;box-shadow:0 0 0 3px rgba(255,255,255,.05)}
+.lockrow{display:flex;gap:9px;margin-top:14px}
+.btn{padding:12px 16px;border-radius:11px;border:1px solid var(--line2);
+  background:rgba(255,255,255,.04);color:var(--fg);font:12px var(--mono);cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  transition:transform .15s var(--ease),background .15s,border-color .15s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.1);border-color:#58585d}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.pri{background:#ececed;color:#0a0a0b;border-color:#ececed;font-weight:600;flex:1}
+.btn.pri:hover{background:#fff}
+.btn.sm{padding:7px 11px;font-size:11px;border-radius:9px}
+.msg{margin:11px 0 0;font-size:11.5px;min-height:16px;color:var(--dim)}
+.msg.bad{color:#e8a0a0}
+.shake{animation:shake .34s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.spin{display:inline-block;width:11px;height:11px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.25);border-top-color:#f0f0f0;
+  animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ====================================================================== */
+/* the dashboard                                                           */
+/* ====================================================================== */
+.dash{position:relative;z-index:1;display:none;max-width:1140px;margin:0 auto;padding:30px 18px 80px}
+.dash.on{display:block;animation:fadein .4s var(--ease)}
+@keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin:0 0 30px}
+.top .who{min-width:0}
+.eyebrow{margin:0 0 7px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);
+  display:flex;align-items:center;gap:8px}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#9ad29a;
+  box-shadow:0 0 0 0 rgba(154,210,154,.5);animation:beat 2.8s var(--ease) infinite}
+@keyframes beat{0%{box-shadow:0 0 0 0 rgba(154,210,154,.45)}
+  60%{box-shadow:0 0 0 7px rgba(154,210,154,0)}100%{box-shadow:0 0 0 0 rgba(154,210,154,0)}}
+.top h1{margin:0;font-size:clamp(20px,4vw,27px);font-weight:600;letter-spacing:-.025em}
+.top .sub{margin:8px 0 0;font-size:12px;color:var(--dim)}
+.top .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+.panel{border-radius:17px;padding:22px;margin:0 0 16px;border:1px solid var(--line);
+  background:linear-gradient(158deg,rgba(255,255,255,.085),rgba(255,255,255,.018) 36%,transparent 70%),var(--glass);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:0 1px 0 rgba(255,255,255,.09) inset,0 10px 26px rgba(0,0,0,.4),
+             0 28px 56px rgba(0,0,0,.3);
+  opacity:0;animation:panelin .55s var(--ease) forwards}
+@keyframes panelin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.panel:nth-of-type(1){animation-delay:.04s}
+.panel:nth-of-type(2){animation-delay:.1s}
+.panel:nth-of-type(3){animation-delay:.16s}
+.panel:nth-of-type(4){animation-delay:.22s}
+.panel:nth-of-type(5){animation-delay:.28s}
+.panel > h2{margin:0 0 3px;font-size:14px;font-weight:600;display:flex;align-items:baseline;gap:10px;
+  flex-wrap:wrap}
+.panel > h2 em{font-style:normal;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint)}
+.panel > p.note{margin:0;font-size:11.5px;color:var(--faint);max-width:70ch;line-height:1.7}
+
+/* ---------- analytics ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:18px 0 0}
+.kpi{padding:15px;border-radius:13px;border:1px solid var(--line);background:var(--glass2);
+  transition:transform .3s var(--ease)}
+.kpi:hover{transform:translateY(-3px)}
+.kpi b{display:block;font-size:19px;font-weight:600;letter-spacing:-.02em}
+.kpi span{display:block;margin-top:4px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin:16px 0 0}
+.chart{padding:16px;border-radius:13px;border:1px solid var(--line);background:rgba(0,0,0,.26)}
+.chart h3{margin:0 0 2px;font-size:12px;font-weight:600}
+.chart p{margin:0 0 10px;font-size:10.5px;color:var(--faint)}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .ln{fill:none;stroke:#e6e6e8;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;
+  stroke-dasharray:var(--len);stroke-dashoffset:var(--len);
+  animation:draw 1.5s var(--ease) .15s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.chart .ar{opacity:0;animation:fadein .9s var(--ease) .8s forwards}
+.chart .gr{stroke:rgba(255,255,255,.07);stroke-width:1}
+.chart .ax{fill:#5e5e63;font:9px var(--mono)}
+.chart .hv{fill:#f0f0f2;opacity:0}
+.chart:hover .hv{opacity:1}
+
+/* ---------- item rows ---------- */
+.tools{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:18px 0 12px}
+.tools input[type=search]{flex:1;min-width:180px;padding:10px 13px;border-radius:10px;
+  border:1px solid var(--line2);background:rgba(0,0,0,.42);color:var(--fg);font:12px var(--mono)}
+.tools input[type=search]:focus{outline:0;border-color:#6d6d72}
+.count{font-size:11px;color:var(--faint);white-space:nowrap}
+
+.rows{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:grid;grid-template-columns:52px minmax(0,1fr) 92px 86px auto;gap:12px;align-items:center;
+  padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.055);
+  transition:background .16s}
+.row:last-child{border-bottom:0}
+.row:hover{background:rgba(255,255,255,.035)}
+.row .seq{font-size:11px;color:var(--faint)}
+.row .nm{min-width:0}
+.row .nm b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.row .nm span{display:block;font-size:10.5px;color:var(--faint);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.row .sz,.row .ln{font-size:11px;color:var(--dim);text-align:right}
+.row .go{display:flex;gap:6px;justify-content:flex-end}
+.pad{padding:26px 14px;text-align:center;color:var(--faint);font-size:11.5px}
+
+.lead{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;margin:17px 0 0}
+.tile{display:block;padding:15px;border-radius:13px;border:1px solid var(--line2);
+  background:var(--glass2);text-decoration:none;color:var(--fg);text-align:left;cursor:pointer;
+  font:inherit;width:100%;
+  transition:transform .18s var(--ease),border-color .18s,background .18s}
+.tile b{display:block;font-size:12.5px;font-weight:600}
+.tile span{display:block;font-size:10.5px;color:var(--faint);margin-top:4px}
+.tile:hover{transform:translateY(-3px);border-color:#5e5e63;background:rgba(255,255,255,.07)}
+.tile:active{transform:scale(.98)}
+.tile.hero{background:#ececed;color:#0a0a0b;border-color:#ececed}
+.tile.hero span{color:#4a4a4a}
+.tile.hero:hover{background:#fff}
+
+/* ---------- source viewer ---------- */
+.look{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;
+  background:rgba(0,0,0,.84);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.look.on{display:flex;animation:fadein .22s var(--ease)}
+.lookbar{display:flex;align-items:center;gap:12px;padding:14px 18px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line)}
+.lookbar .t{flex:1;min-width:0}
+.lookbar .t b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lookbar .t span{display:block;font-size:10.5px;color:var(--faint)}
+.lookbody{flex:1;overflow:auto;padding:16px 18px 40px}
+.lookbody pre{margin:0;font:11.5px/1.6 var(--mono);color:#d8d8dc;white-space:pre-wrap;
+  word-break:break-word}
+.trunc{margin:0 0 14px;padding:10px 13px;border-radius:9px;border:1px solid var(--line2);
+  background:rgba(255,255,255,.04);font-size:11px;color:var(--dim)}
+
+footer{position:relative;z-index:1;text-align:center;padding:0 18px 40px;font-size:11px;color:#3c3c40}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+  .panel{opacity:1!important;transform:none!important}
+  .chart .ln{stroke-dashoffset:0!important}
+  .chart .ar{opacity:1!important}
+}
+@media(max-width:620px){
+  .row{grid-template-columns:44px minmax(0,1fr) auto;gap:10px}
+  .row .sz,.row .ln{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="lamp"></div><div class="vig"></div>
+</div>
+
+<!-- ------------------------------------------------------------ lock screen -->
+<div class="lock" id="lock">
+  <div class="lockcard" id="lockcard">
+    <div class="padlock"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.4"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/><path d="M12 14.6v2.2"/></svg></div>
+    <h1>Build vault</h1>
+    <p class="lede">Every build, source file and archive behind this prompt is encrypted with
+      AES&#8209;256&#8209;GCM. The password is not checked against a stored copy &mdash; it derives the
+      key. A wrong one does not get turned away, it simply opens nothing.</p>
+    <input id="pw" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"
+           placeholder="password" aria-label="Owner password">
+    <p class="msg" id="msg" role="status"></p>
+    <div class="lockrow">
+      <a class="btn" href="./">Back</a>
+      <button class="btn pri" id="unlock" type="button">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- -------------------------------------------------------------- dashboard -->
+<main class="dash" id="dash">
+
+  <div class="top">
+    <div class="who">
+      <p class="eyebrow"><span class="dot"></span> unlocked &middot; this tab only</p>
+      <h1>FinanceCalc build vault</h1>
+      <p class="sub" id="subline">&nbsp;</p>
+    </div>
+    <div class="acts">
+      <a class="btn sm" href="./">Landing page</a>
+      <button class="btn sm" id="relock" type="button">Lock</button>
+    </div>
+  </div>
+
+  <!-- analytics -->
+  <section class="panel">
+    <h2>Analytics <em id="anCount">&nbsp;</em></h2>
+    <p class="note">Measured from the archive itself &mdash; every figure below is the real byte and
+      line count of the file in the vault, not an estimate.</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="charts" id="charts"></div>
+  </section>
+
+  <!-- the shipping desktop build -->
+  <section class="panel">
+    <h2>Shipping build <em>v40.2 &middot; macOS</em></h2>
+    <p class="note">The public download. A universal binary with the frontend mangled and the
+      provenance layer compiled in &mdash; this one is deliberately not encrypted, because it is
+      what the world is meant to get.</p>
+    <div class="lead">
+      <a class="tile hero" href="https://github.com/Semtexhigh/FinanceCalc/releases/download/desktop-v40.2.0/FinanceCalc_40.2.0_universal.dmg">
+        <b>FinanceCalc 40.2.0 universal</b><span>compiled &middot; .dmg &middot; 5.0 MB</span></a>
+      <a class="tile" href="https://github.com/Semtexhigh/FinanceCalc/releases/tag/desktop-v40.2.0">
+        <b>Release notes</b><span>checksums &amp; provenance</span></a>
+      <a class="tile" href="https://github.com/Semtexhigh/FinanceCalc">
+        <b>Repository</b><span>Semtexhigh/FinanceCalc</span></a>
+    </div>
+  </section>
+
+  <!-- current source -->
+  <section class="panel">
+    <h2>Current source <em>encrypted</em></h2>
+    <p class="note">Decrypted in this tab, in memory, and verified against its SHA&#8209;256 before
+      it reaches you.</p>
+    <div class="lead" id="sources"></div>
+  </section>
+
+  <!-- the archive -->
+  <section class="panel">
+    <h2>Build archive <em>oldest &rarr; newest</em></h2>
+    <p class="note">Every build that ever shipped, as its own encrypted blob. Viewing and saving
+      both go through the key.</p>
+    <div class="tools">
+      <input type="search" id="q" placeholder="filter by version or number&hellip;" aria-label="Filter builds">
+      <span class="count" id="count"></span>
+      <button class="btn sm" id="newest" type="button">Newest first</button>
+    </div>
+    <div class="rows" id="rows"><p class="pad">loading&hellip;</p></div>
+  </section>
+
+</main>
+
+<footer id="foot" style="display:none">FinanceCalc &middot; &copy; 2026 Zeeshan Saleem &middot;
+  proprietary &mdash; no licence is granted to copy, redistribute, decompile or derive from this work</footer>
+
+<!-- ---------------------------------------------------------- source viewer -->
+<div class="look" id="look" role="dialog" aria-modal="true">
+  <div class="lookbar">
+    <div class="t"><b id="lookname">&nbsp;</b><span id="lookmeta">&nbsp;</span></div>
+    <button class="btn sm" id="looksave" type="button">Save file</button>
+    <button class="btn sm" id="lookclose" type="button">Close</button>
+  </div>
+  <div class="lookbody"><div id="lookpre"></div></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MANIFEST = "./vault/manifest.json";
+  var VIEW_CAP = 400000;          /* characters shown in the viewer */
+
+  var $ = function(id){ return document.getElementById(id); };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* key material lives here and nowhere else; relocking drops it */
+  var KEY = null, MAN = null, ITEMS = [], order = 1, current = null;
+
+  /* ---------------------------------------------------------------- crypto */
+  function b64(s){
+    var bin = atob(String(s).replace(/\s+/g,""));
+    var out = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
+    return out;
+  }
+  function utf8(s){ return new TextEncoder().encode(s); }
+
+  function subtle(){
+    var s = window.crypto && window.crypto.subtle;
+    if(!s) throw new Error("This browser has no Web Crypto. Open the page over https.");
+    return s;
+  }
+
+  /* PBKDF2 -> a key that can only unwrap the data key */
+  function slotKey(pw, salt, iters){
+    var s = subtle();
+    return s.importKey("raw", utf8(pw), {name:"PBKDF2"}, false, ["deriveKey"])
+      .then(function(base){
+        return s.deriveKey({name:"PBKDF2", salt:salt, iterations:iters, hash:"SHA-256"},
+                           base, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+      });
+  }
+
+  /* Try the password against each slot.  GCM authenticates, so a wrong
+     password fails on 48 bytes - nothing large is fetched to find out. */
+  function unwrap(pw, man){
+    var names = Object.keys(man.slots||{});
+    var i = 0;
+    function attempt(){
+      if(i >= names.length) return Promise.reject(new Error("nope"));
+      var slot = man.slots[names[i++]];
+      return slotKey(pw, b64(slot.salt), man.iterations||310000)
+        .then(function(wk){
+          return subtle().decrypt({name:"AES-GCM", iv:b64(slot.iv)}, wk, b64(slot.ct));
+        })
+        .then(function(raw){
+          return subtle().importKey("raw", raw, {name:"AES-GCM"}, false, ["decrypt"]);
+        })
+        .catch(attempt);
+    }
+    return attempt();
+  }
+
+  function gunzip(buf){
+    if(typeof DecompressionStream === "undefined")
+      return Promise.reject(new Error("This browser cannot un-gzip. Safari 16.4+, Chrome 80+."));
+    var stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).arrayBuffer().then(function(a){ return new Uint8Array(a); });
+  }
+
+  function hex(buf){
+    var v = new Uint8Array(buf), out = "";
+    for(var i=0;i<v.length;i++) out += (v[i]<16?"0":"") + v[i].toString(16);
+    return out;
+  }
+
+  /* fetch -> decrypt -> un-gzip -> verify the hash.  The item id is bound
+     in as additional data, so a blob cannot be swapped for another one. */
+  function open_(item){
+    if(!KEY) return Promise.reject(new Error("locked"));
+    var url = "./vault/" + (MAN.dir||"b") + "/" + item.id + ".enc";
+    return fetch(url, {cache:"no-store"})
+      .then(function(r){
+        if(!r.ok) throw new Error("that blob is missing (" + r.status + ")");
+        return r.arrayBuffer();
+      })
+      .then(function(ct){
+        return subtle().decrypt({name:"AES-GCM", iv:b64(item.iv),
+                                 additionalData:utf8(item.id)}, KEY, ct);
+      })
+      .then(function(gz){ return item.gz ? gunzip(gz) : new Uint8Array(gz); })
+      .then(function(bytes){
+        if(!item.sha256) return bytes;
+        return subtle().digest("SHA-256", bytes).then(function(d){
+          if(hex(d) !== item.sha256) throw new Error("the decrypted file does not match its hash");
+          return bytes;
+        });
+      });
+  }
+
+  /* ----------------------------------------------------------------- unlock */
+  function setMsg(t, bad){
+    var m = $("msg");
+    m.innerHTML = t;
+    m.className = "msg" + (bad ? " bad" : "");
+    if(bad){
+      var c = $("lockcard");
+      c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake");
+    }
+  }
+
+  function tryUnlock(pw){
+    var btn = $("unlock");
+    btn.disabled = true;
+    setMsg('<span class="spin"></span> deriving the key&hellip;');
+    var man;
+    return fetch(MANIFEST, {cache:"no-store"})
+      .then(function(r){
+        if(!r.ok) throw new Error("manifest-missing");
+        return r.json();
+      })
+      .then(function(j){ man = j; return unwrap(pw, man); })
+      .then(function(key){
+        KEY = key; MAN = man;
+        btn.disabled = false;          /* so a relock can be unlocked again */
+        try{ sessionStorage.removeItem("fc.vault.pw"); }catch(e){}
+        show();
+      })
+      .catch(function(e){
+        btn.disabled = false;
+        if(e && e.message === "manifest-missing"){
+          setMsg("The vault manifest is not on this site yet.", true);
+        }else if(e && /Web Crypto/.test(e.message||"")){
+          setMsg(e.message, true);
+        }else{
+          setMsg("That did not open anything. Check the password.", true);
+        }
+        $("pw").select();
+      });
+  }
+
+  $("unlock").addEventListener("click", function(){
+    var v = $("pw").value;
+    if(!v){ setMsg("Type the password.", true); return; }
+    tryUnlock(v);
+  });
+  $("pw").addEventListener("keydown", function(ev){
+    if(ev.key === "Enter") $("unlock").click();
+  });
+
+  $("relock").addEventListener("click", function(){
+    KEY = null; MAN = null; ITEMS = []; current = null;
+    $("dash").classList.remove("on");
+    $("foot").style.display = "none";
+    $("lock").style.display = "flex";
+    $("unlock").disabled = false;
+    $("pw").value = ""; setMsg("Locked. The key is gone from this tab.");
+    window.scrollTo(0,0);
+    setTimeout(function(){ try{ $("pw").focus(); }catch(e){} }, 60);
+  });
+
+  /* handed over by the landing page, used once, then wiped */
+  (function(){
+    var pw = null;
+    try{ pw = sessionStorage.getItem("fc.vault.pw"); }catch(e){}
+    if(pw){
+      try{ sessionStorage.removeItem("fc.vault.pw"); }catch(e){}
+      $("pw").value = pw;
+      tryUnlock(pw);
+    }else{
+      setTimeout(function(){ try{ $("pw").focus(); }catch(e){} }, 120);
+    }
+  })();
+
+  /* ------------------------------------------------------------- rendering */
+  function bytes(n){
+    if(n < 1024) return n + " B";
+    if(n < 1048576) return (n/1024).toFixed(n < 10240 ? 1 : 0) + " KB";
+    return (n/1048576).toFixed(n < 10485760 ? 1 : 0) + " MB";
+  }
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(text != null) e.textContent = text;
+    return e;
+  }
+
+  function show(){
+    $("lock").style.display = "none";
+    $("dash").classList.add("on");
+    $("foot").style.display = "";
+
+    ITEMS = (MAN.items || []).slice();
+    var builds = ITEMS.filter(function(i){ return i.kind === "build"; });
+    var srcs   = ITEMS.filter(function(i){ return i.kind !== "build"; });
+
+    var encTotal = ITEMS.reduce(function(a,i){ return a + (i.enc||0); }, 0);
+    $("subline").textContent =
+      ITEMS.length + " encrypted payloads · " + bytes(encTotal) +
+      " of ciphertext · PBKDF2-SHA256 " + (MAN.iterations||0).toLocaleString("en-GB") +
+      " iterations · AES-256-GCM";
+
+    var ac=$("anCount"); if(ac) ac.textContent = builds.length + " builds";
+    analytics(builds);
+    sources(srcs);
+    archive(builds);
+  }
+
+  /* ---------- analytics ---------- */
+  function analytics(b){
+    if(!b.length) return;
+    var last = b[b.length-1], first = b[0];
+    var totalBytes = b.reduce(function(a,i){ return a + (i.bytes||0); }, 0);
+    var peak = b.reduce(function(a,i){ return (i.bytes||0) > (a.bytes||0) ? i : a; }, b[0]);
+
+    var kpis = [
+      [String(b.length), "builds archived"],
+      [bytes(last.bytes||0), "current build"],
+      [((last.lines||0)).toLocaleString("en-GB"), "lines, latest"],
+      [Math.round((last.bytes||1)/(first.bytes||1)) + "×", "growth since v1.0"],
+      [bytes(totalBytes), "archive, decrypted"],
+      [bytes(peak.bytes||0), "largest (" + (peak.ver||peak.seq) + ")"]
+    ];
+    var host = $("kpis"); host.innerHTML = "";
+    kpis.forEach(function(k){
+      var d = el("div","kpi");
+      d.appendChild(el("b", null, k[0]));
+      d.appendChild(el("span", null, k[1]));
+      host.appendChild(d);
+    });
+
+    var cw = $("charts"); cw.innerHTML = "";
+    cw.appendChild(chart("File size per build", "log scale — bytes of the shipped HTML",
+      b, function(i){ return i.bytes||1; }, true, bytes));
+    cw.appendChild(chart("Lines per build", "linear — lines in the single file",
+      b, function(i){ return i.lines||0; }, false, function(v){
+        return Math.round(v).toLocaleString("en-GB") + " lines"; }));
+  }
+
+  /* A small SVG line chart.  Drawn as one path so it animates with a
+     dash offset rather than by moving 151 elements. */
+  function chart(title, sub, rows, pick, logy, fmt){
+    var W = 560, H = 190, P = {t:12, r:10, b:22, l:46};
+    var box = el("div","chart");
+    box.appendChild(el("h3", null, title));
+    box.appendChild(el("p", null, sub));
+
+    var vals = rows.map(pick);
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    var tf = logy ? function(v){ return Math.log10(Math.max(1,v)); } : function(v){ return v; };
+    var tlo = logy ? tf(lo) : 0, thi = tf(hi);
+    if(thi === tlo) thi = tlo + 1;
+
+    var x = function(i){ return P.l + (W-P.l-P.r) * (rows.length<2?0:i/(rows.length-1)); };
+    var y = function(v){ return P.t + (H-P.t-P.b) * (1 - (tf(v)-tlo)/(thi-tlo)); };
+
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns,"svg");
+    svg.setAttribute("viewBox","0 0 "+W+" "+H);
+    svg.setAttribute("role","img");
+    svg.setAttribute("aria-label", title);
+
+    var g, k;
+    for(k=0;k<=3;k++){
+      var gy = P.t + (H-P.t-P.b)*k/3;
+      g = document.createElementNS(ns,"line");
+      g.setAttribute("class","gr");
+      g.setAttribute("x1",P.l); g.setAttribute("x2",W-P.r);
+      g.setAttribute("y1",gy);  g.setAttribute("y2",gy);
+      svg.appendChild(g);
+      var lab = document.createElementNS(ns,"text");
+      lab.setAttribute("class","ax");
+      lab.setAttribute("x", 4); lab.setAttribute("y", gy+3);
+      var vv = logy ? Math.pow(10, thi - (thi-tlo)*k/3) : hi - (hi-0)*k/3;
+      lab.textContent = fmt(vv).replace(" lines","");
+      svg.appendChild(lab);
+    }
+
+    var d = "", a = "";
+    rows.forEach(function(r,i){
+      var px = x(i).toFixed(2), py = y(pick(r)).toFixed(2);
+      d += (i ? "L" : "M") + px + " " + py;
+    });
+    a = d + "L" + x(rows.length-1).toFixed(2) + " " + (H-P.b) +
+            "L" + x(0).toFixed(2) + " " + (H-P.b) + "Z";
+
+    var grad = document.createElementNS(ns,"linearGradient");
+    var gid = "g" + Math.random().toString(36).slice(2,8);
+    grad.setAttribute("id", gid);
+    grad.setAttribute("x1","0"); grad.setAttribute("y1","0");
+    grad.setAttribute("x2","0"); grad.setAttribute("y2","1");
+    [[0,".22"],[1,"0"]].forEach(function(st){
+      var s = document.createElementNS(ns,"stop");
+      s.setAttribute("offset", st[0]);
+      s.setAttribute("stop-color","#ffffff");
+      s.setAttribute("stop-opacity", st[1]);
+      grad.appendChild(s);
+    });
+    var defs = document.createElementNS(ns,"defs");
+    defs.appendChild(grad); svg.appendChild(defs);
+
+    var area = document.createElementNS(ns,"path");
+    area.setAttribute("class","ar");
+    area.setAttribute("d", a);
+    area.setAttribute("fill","url(#"+gid+")");
+    svg.appendChild(area);
+
+    var line = document.createElementNS(ns,"path");
+    line.setAttribute("class","ln");
+    line.setAttribute("d", d);
+    svg.appendChild(line);
+
+    /* first and last labelled, so the axis means something */
+    [[0, rows[0]], [rows.length-1, rows[rows.length-1]]].forEach(function(pair,n){
+      var tx = document.createElementNS(ns,"text");
+      tx.setAttribute("class","ax");
+      tx.setAttribute("x", x(pair[0]));
+      tx.setAttribute("y", H-6);
+      tx.setAttribute("text-anchor", n ? "end" : "start");
+      tx.textContent = pair[1].ver || pair[1].seq || "";
+      svg.appendChild(tx);
+    });
+
+    box.appendChild(svg);
+
+    /* let the dash animation know how long the path is */
+    try{
+      var len = line.getTotalLength ? line.getTotalLength() : 2000;
+      line.style.setProperty("--len", (len||2000).toFixed(0));
+    }catch(e){ line.style.setProperty("--len","2600"); }
+
+    return box;
+  }
+
+  /* ---------- current source tiles ---------- */
+  function sources(list){
+    var host = $("sources"); host.innerHTML = "";
+    if(!list.length){ host.appendChild(el("p","pad","Nothing filed here yet.")); return; }
+    list.forEach(function(it){
+      var b = el("button","tile");
+      b.type = "button";
+      b.appendChild(el("b", null, it.name));
+      b.appendChild(el("span", null,
+        it.file + " · " + bytes(it.bytes||0) + " · " + bytes(it.enc||0) + " encrypted"));
+      b.addEventListener("click", function(){ save(it, b); });
+      host.appendChild(b);
+    });
+  }
+
+  /* ---------- the archive list ---------- */
+  function archive(b){
+    var q = $("q"), rows = $("rows"), count = $("count");
+
+    function paint(){
+      var term = q.value.trim().toLowerCase();
+      var list = b.filter(function(i){
+        if(!term) return true;
+        return (i.name+" "+(i.ver||"")+" "+(i.seq||"")+" "+i.file).toLowerCase().indexOf(term) >= 0;
+      });
+      if(order < 0) list = list.slice().reverse();
+
+      count.textContent = list.length + " of " + b.length;
+      rows.innerHTML = "";
+      if(!list.length){ rows.appendChild(el("p","pad","Nothing matches that.")); return; }
+
+      var frag = document.createDocumentFragment();
+      list.forEach(function(it){
+        var r = el("div","row");
+        r.appendChild(el("div","seq", it.seq || ""));
+        var nm = el("div","nm");
+        nm.appendChild(el("b", null, it.name));
+        nm.appendChild(el("span", null, it.file));
+        r.appendChild(nm);
+        r.appendChild(el("div","sz", bytes(it.bytes||0)));
+        r.appendChild(el("div","ln", (it.lines||0).toLocaleString("en-GB")));
+        var go = el("div","go");
+        var v = el("button","btn sm","View"); v.type = "button";
+        var s = el("button","btn sm","Save"); s.type = "button";
+        v.addEventListener("click", function(){ view(it, v); });
+        s.addEventListener("click", function(){ save(it, s); });
+        go.appendChild(v); go.appendChild(s);
+        r.appendChild(go);
+        frag.appendChild(r);
+      });
+      rows.appendChild(frag);
+    }
+
+    q.addEventListener("input", paint);
+    $("newest").addEventListener("click", function(){
+      order = -order;
+      this.textContent = order < 0 ? "Oldest first" : "Newest first";
+      paint();
+    });
+    paint();
+  }
+
+  /* ---------- actions ---------- */
+  function busy(btn, on, label){
+    if(!btn) return;
+    if(on){ btn.dataset.was = btn.textContent; btn.disabled = true; btn.textContent = label || "…"; }
+    else  { btn.disabled = false; btn.textContent = btn.dataset.was || "Done"; }
+  }
+
+  function save(it, btn){
+    busy(btn, true, "opening…");
+    open_(it).then(function(bytes_){
+      var url = URL.createObjectURL(new Blob([bytes_], {type:"application/octet-stream"}));
+      var a = document.createElement("a");
+      a.href = url; a.download = it.file; a.rel = "noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      busy(btn, false);
+    }).catch(function(e){
+      busy(btn, false);
+      alert("Could not open that: " + (e && e.message ? e.message : "unknown error"));
+    });
+  }
+
+  function view(it, btn){
+    busy(btn, true, "opening…");
+    open_(it).then(function(bytes_){
+      current = {item: it, bytes: bytes_};
+      var text = new TextDecoder("utf-8", {fatal:false}).decode(bytes_);
+      var host = $("lookpre"); host.innerHTML = "";
+      if(text.length > VIEW_CAP){
+        host.appendChild(el("p","trunc",
+          "Showing the first " + VIEW_CAP.toLocaleString("en-GB") + " of " +
+          text.length.toLocaleString("en-GB") + " characters. Save the file for all of it."));
+        text = text.slice(0, VIEW_CAP);
+      }
+      host.appendChild(el("pre", null, text));
+      $("lookname").textContent = it.name;
+      $("lookmeta").textContent = it.file + " · " + bytes(it.bytes||0) +
+        " · sha256 " + String(it.sha256||"").slice(0,16) + "… verified";
+      $("look").classList.add("on");
+      $("lookbody").scrollTop = 0;
+      busy(btn, false);
+    }).catch(function(e){
+      busy(btn, false);
+      alert("Could not open that: " + (e && e.message ? e.message : "unknown error"));
+    });
+  }
+
+  $("lookclose").addEventListener("click", function(){
+    $("look").classList.remove("on");
+    $("lookpre").innerHTML = "";          /* do not leave the source in the DOM */
+    current = null;
+  });
+  $("looksave").addEventListener("click", function(){
+    if(!current) return;
+    var url = URL.createObjectURL(new Blob([current.bytes], {type:"application/octet-stream"}));
+    var a = document.createElement("a");
+    a.href = url; a.download = current.item.file; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  });
+  document.addEventListener("keydown", function(ev){
+    if(ev.key === "Escape" && $("look").classList.contains("on")) $("lookclose").click();
+  });
+
+  /* ---------- the pointer lamp ---------- */
+  if(!reduce){
+    var root = document.documentElement, qx=.5, qy=.3, queued=false;
+    window.addEventListener("pointermove", function(ev){
+      qx = ev.clientX/window.innerWidth; qy = ev.clientY/window.innerHeight;
+      if(!queued){
+        queued = true;
+        requestAnimationFrame(function(){
+          queued = false;
+          root.style.setProperty("--mx", qx.toFixed(4));
+          root.style.setProperty("--my", qy.toFixed(4));
+        });
+      }
+    }, {passive:true});
+  }
+})();
+</script>
+</body>
+</html>
