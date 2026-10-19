@@ -11,6 +11,7 @@
 
 mod folder;
 mod net;
+mod touchid;
 mod provenance;
 
 use serde::Serialize;
@@ -76,7 +77,9 @@ pub fn run() {
             folder::fc_list,
             folder::fc_remove,
             folder::fc_stat,
-            net::fc_http
+            net::fc_http,
+            touchid::fc_touchid,
+            touchid::fc_touchid_available
         ])
         .run(tauri::generate_context!())
         .expect("error while running FinanceCalc");

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Without this key macOS never offers the camera to the web view, so
+	     navigator.mediaDevices is simply absent and face unlock reports that it
+	     cannot reach a camera. The string is what the system prompt shows. -->
+	<key>NSCameraUsageDescription</key>
+	<string>FinanceCalc uses the camera only on the lock screen, to recognise your face and let you in. Nothing is recorded and no image ever leaves this Mac.</string>
+	<!-- Touch ID, for unlocking the app. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>FinanceCalc uses Touch ID to unlock the app. Your PIN still works.</string>
+</dict>
+</plist>

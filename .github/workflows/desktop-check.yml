@@ -1,0 +1,40 @@
+# Compile-check the macOS shell without building a .dmg.
+# A full release build is 15-20 minutes; this answers "does the native code
+# compile on a Mac?" in a couple, which is the only question worth asking
+# before cutting a tag.
+name: desktop-check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: Install terser
+        run: npm install -g terser
+
+      - name: Build the frontend the shell compiles against
+        env:
+          FINANCECALC_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          python desktop/tools/gen_provenance.py
+          python desktop/tools/prepare_frontend.py
+
+      - name: cargo check (aarch64-apple-darwin)
+        working-directory: desktop/src-tauri
+        run: cargo check --target aarch64-apple-darwin --all-targets

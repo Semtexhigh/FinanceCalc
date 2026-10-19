@@ -7265,7 +7265,7 @@ AI_TYPES.join(", "),
     if(!faceCfg.on || !facePeople().length) return;
     if(cameraBlocked()) return;
     if(inFrame() && !window.faceapi){
-      setStatus && setStatus("Face unlock needs the app in its own tab");
+      setStatus && setStatus(isDesktopApp() ? "Face unlock can't run in an embedded frame" : "Face unlock needs the app in its own tab");
       return;
     }
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
@@ -7498,6 +7498,30 @@ AI_TYPES.join(", "),
     ov.querySelector(".lk-box").appendChild(faceLine);
     var faceSay=function(m){ faceLine.textContent=m||""; faceLine.style.color=/Welcome/.test(m||"")?"var(--up)":"var(--mut)"; };
     startAutoFace(ov, unlock, faceSay);
+
+    /* Fingerprint sits on its own line under the face line. It asks once
+       when the screen opens, and after that only when tapped - a prompt
+       that reappears on its own is a prompt people learn to dismiss. */
+    if(bioCfg.on){
+      var bioLine=document.createElement("button");
+      bioLine.type="button"; bioLine.className="kp-link"; bioLine.id="lkBio";
+      bioLine.textContent="Unlock with "+bioLabel();
+      ov.querySelector(".lk-box").appendChild(bioLine);
+      var asking=false;
+      var askBio=function(){
+        if(asking || !document.getElementById("lockScreen")) return;
+        asking=true; bioLine.disabled=true;
+        bioVerify().then(function(ok){
+          asking=false; bioLine.disabled=false;
+          if(!document.getElementById("lockScreen")) return;
+          if(ok){ unlock(); return; }
+          recordFailedAttempt && recordFailedAttempt("bio");
+          bioLine.textContent="Try "+bioLabel()+" again";
+        });
+      };
+      bioLine.addEventListener("click", askBio);
+      if(autoBioOn()) setTimeout(askBio, 260);
+    }
 
     /* The camera must never outlive this screen. Three independent triggers,
        because one missed path leaves the light on: leaving the tab, the
@@ -7999,10 +8023,136 @@ AI_TYPES.join(", "),
   }
   function saveFace(){ try{ localStorage.setItem(FACE_KEY, JSON.stringify(faceCfg)); }catch(e){} }
 
+  /* ============================================================
+     FINGERPRINT / TOUCH ID
+
+     A second way past the lock screen, sitting on the PIN the same way
+     face unlock does. Nothing is encrypted with it: it proves the person
+     at the machine is the owner, and the PIN remains the fallback.
+
+     Desktop app  -> fc_touchid, a Rust command that calls macOS
+                     LocalAuthentication. That is the system prompt.
+     Browser      -> WebAuthn with a platform authenticator, which on a Mac
+                     is the same Touch ID sensor.
+
+     If neither is available the row is not shown at all.
+     ============================================================ */
+  var BIO_KEY="mymoney_bio_v1";
+  var bioCfg={ on:false, cred:"", kind:"" };
+  function loadBio(){
+    try{ var r=localStorage.getItem(BIO_KEY); if(r) bioCfg=Object.assign(bioCfg, JSON.parse(r)); }catch(e){}
+  }
+  function saveBio(){ try{ localStorage.setItem(BIO_KEY, JSON.stringify(bioCfg)); }catch(e){} }
+  loadBio();
+
+  var AUTOBIO_KEY="mymoney_autobio";
+  function autoBioOn(){ try{ return localStorage.getItem(AUTOBIO_KEY)!=="0"; }catch(e){ return true; } }
+  function setAutoBio(on){
+    try{ on ? localStorage.removeItem(AUTOBIO_KEY) : localStorage.setItem(AUTOBIO_KEY,"0"); }catch(e){}
+  }
+
+  function bioNative(){
+    try{ return isDesktopApp() && window.__TAURI__.core && typeof window.__TAURI__.core.invoke==="function"; }
+    catch(e){ return false; }
+  }
+  /* Is there a sensor? Answered once and remembered for the session, because
+     both routes are a real system call and the settings screen asks often. */
+  var _bioAvail=null;
+  function bioAvailable(){
+    if(_bioAvail) return _bioAvail;
+    _bioAvail = new Promise(function(res){
+      if(bioNative()){
+        window.__TAURI__.core.invoke("fc_touchid_available")
+          .then(function(ok){ res(!!ok); })
+          .catch(function(){ res(false); });
+        return;
+      }
+      if(!(window.PublicKeyCredential &&
+           PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)){ res(false); return; }
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        .then(function(ok){ res(!!ok); })
+        .catch(function(){ res(false); });
+    });
+    return _bioAvail;
+  }
+  function bioLabel(){ return isApple&&isApple() ? "Touch ID" : "Fingerprint"; }
+
+  function _b64(buf){
+    var b=new Uint8Array(buf), out="";
+    for(var i=0;i<b.length;i++) out+=String.fromCharCode(b[i]);
+    return btoa(out);
+  }
+  function _unb64(str){
+    var raw=atob(str), out=new Uint8Array(raw.length);
+    for(var i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i);
+    return out;
+  }
+  function _chal(){
+    var a=new Uint8Array(32);
+    (window.crypto||{}).getRandomValues ? crypto.getRandomValues(a)
+      : a.forEach(function(_,i){ a[i]=Math.floor(Math.random()*256); });
+    return a;
+  }
+
+  /* Enrol. Resolves true when the device has bound a credential to this app. */
+  function bioEnrol(){
+    return bioAvailable().then(function(ok){
+      if(!ok) return false;
+      if(bioNative()){
+        return window.__TAURI__.core.invoke("fc_touchid", {reason:"set up "+bioLabel()+" for FinanceCalc"})
+          .then(function(ok2){
+            if(!ok2) return false;
+            bioCfg.on=true; bioCfg.kind="native"; bioCfg.cred=""; saveBio();
+            return true;
+          }).catch(function(){ return false; });
+      }
+      var id=new Uint8Array(16); crypto.getRandomValues(id);
+      return navigator.credentials.create({publicKey:{
+        challenge:_chal(),
+        rp:{name:"FinanceCalc"},
+        user:{id:id, name:"my-money", displayName:"My Money"},
+        pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+        authenticatorSelection:{authenticatorAttachment:"platform", userVerification:"required", residentKey:"preferred"},
+        timeout:60000, attestation:"none"
+      }}).then(function(c){
+        if(!c) return false;
+        bioCfg.on=true; bioCfg.kind="webauthn"; bioCfg.cred=_b64(c.rawId); saveBio();
+        return true;
+      }).catch(function(){ return false; });
+    });
+  }
+
+  /* Ask. Resolves true only on a real success - never on a cancel or error,
+     so a refusal silently leaves the PIN pad exactly where it was. */
+  function bioVerify(){
+    if(!bioCfg.on) return Promise.resolve(false);
+    if(bioCfg.kind==="native" || bioNative()){
+      return window.__TAURI__.core.invoke("fc_touchid", {reason:"unlock FinanceCalc"})
+        .then(function(ok){ return !!ok; }).catch(function(){ return false; });
+    }
+    if(!(window.PublicKeyCredential && navigator.credentials)) return Promise.resolve(false);
+    var allow=[];
+    if(bioCfg.cred) allow.push({type:"public-key", id:_unb64(bioCfg.cred), transports:["internal"]});
+    return navigator.credentials.get({publicKey:{
+      challenge:_chal(), allowCredentials:allow, userVerification:"required", timeout:60000
+    }}).then(function(a){ return !!a; }).catch(function(){ return false; });
+  }
+  function bioDisable(){ bioCfg.on=false; bioCfg.cred=""; bioCfg.kind=""; saveBio(); }
+
   /* ---- 1. is there a camera at all? ---- */
   /* A hard off switch the user controls. Checked before any camera call,
      so blocking it here blocks face unlock and enrolment too — not just
      hidden from the UI. Survives reloads. */
+  /* What are we running inside? The shell gives the page its own origin and
+     no browser around it, so every message that says "browser" is wrong there
+     - and the fix for the user is different too: in the app the camera is a
+     macOS permission, in a browser it is a site permission. */
+  function isDesktopApp(){
+    try{ return !!(window.__TAURI__ && window.__TAURI__.core); }catch(e){ return false; }
+  }
+  function hostWord(){ return isDesktopApp() ? "the app" : "this browser"; }
+  function hostWordCap(){ return isDesktopApp() ? "The app" : "This browser"; }
+
   var CAM_KEY="mymoney_cam_off";
   function cameraBlocked(){
     try{ return localStorage.getItem(CAM_KEY)==="1"; }catch(e){ return false; }
@@ -8027,19 +8177,25 @@ AI_TYPES.join(", "),
       return Promise.resolve({ok:false, blocked:true,
         why:"You've switched the camera off for this app. Turn it back on to use face unlock."});
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
-      return Promise.resolve({ok:false, why:"This browser can't reach a camera."});
+      return Promise.resolve({ok:false, noApi:true, why: isDesktopApp()
+        ? "The app hasn't been given access to the camera. macOS grants it the first time the app asks — if you said No, turn FinanceCalc back on under System Settings › Privacy & Security › Camera."
+        : "This browser can't reach a camera."});
     if(!window.isSecureContext)
-      return Promise.resolve({ok:false, why:"Camera access needs https. Opened straight from disk (file://) the browser blocks it."});
+      return Promise.resolve({ok:false, why: hostWordCap()+" blocks the camera here because the page isn't on a secure origin. Opened straight from disk (file://) that is expected — use the installed app or the website."});
     var framed=false; try{ framed=(window.self!==window.top); }catch(e){ framed=true; }
     if(framed)
-      return Promise.resolve({ok:false, why:"The camera is blocked inside a frame. Open this in its own tab to use face unlock."});
+      return Promise.resolve({ok:false, why: isDesktopApp()
+        ? "The camera is blocked inside an embedded frame."
+        : "The camera is blocked inside a frame. Open this in its own tab to use face unlock."});
     if(!navigator.mediaDevices.enumerateDevices)
       return Promise.resolve({ok:true, why:""});   // can't enumerate; try anyway
     return navigator.mediaDevices.enumerateDevices().then(function(list){
       var cams=list.filter(function(d){ return d.kind==="videoinput"; });
       return cams.length
         ? {ok:true, why:"", count:cams.length}
-        : {ok:false, why:"No camera found on this device."};
+        : {ok:false, why: isDesktopApp()
+            ? "No camera is available. If this Mac has one, FinanceCalc may have been refused it — check System Settings › Privacy & Security › Camera."
+            : "No camera found on this device."};
     }).catch(function(){ return {ok:true, why:""}; });
   }
 
@@ -11945,12 +12101,38 @@ AI_TYPES.join(", "),
       openRecoverySetup();
     });
 
+    var bioFpBtn=document.getElementById("bioFpBtn");
+    if(bioFpBtn && !bioFpBtn._bound){
+      bioFpBtn._bound=true;
+      bioFpBtn.addEventListener("click", function(){
+        if(!lockIsOn()){
+          appModal({title:"Set a PIN first",
+            message:bioLabel()+" sits on top of the PIN \u2014 the PIN is the fallback whenever the sensor can't read you.",
+            confirmText:"OK"});
+          return;
+        }
+        if(bioCfg.on){
+          appModal({title:"Remove "+bioLabel()+"?", message:"You'll unlock with your PIN only.",
+            confirmText:"Remove", cancelText:"Keep",
+            onConfirm:function(){ bioDisable(); refreshSecUI(); flashSaved(bioLabel()+" removed"); }});
+          return;
+        }
+        bioFpBtn.disabled=true;
+        bioEnrol().then(function(ok){
+          bioFpBtn.disabled=false;
+          if(ok){ refreshSecUI(); flashSaved(bioLabel()+" on"); }
+          else appModal({title:bioLabel()+" wasn't set up",
+            message:"The sensor didn't confirm it was you, or the request was cancelled. Nothing has changed.",
+            confirmText:"OK"});
+        });
+      });
+    }
     var faceBtn=document.getElementById("faceBtn");
     if(faceBtn) faceBtn.addEventListener("click", function(){
       if(window._faceWhy){
         var c=window._faceWhy;
         var canPhoto = !c.blocked && !inFrame();   // photo enrolment needs no camera, only the model
-        appModal({title:"Face unlock can't run here", investigate:true,
+        appModal({title: canPhoto ? "Set up face unlock from a photo" : "Face unlock can't run here", investigate:true,
           message:c.why+(canPhoto?"\n\nYou can still enrol from a photo — the model downloads once (~6MB) and face matching then runs on this device.":""),
           confirmText:canPhoto?"Use a photo":"OK", cancelText:canPhoto?"Close":undefined,
           onConfirm:canPhoto?function(){
@@ -12025,6 +12207,25 @@ AI_TYPES.join(", "),
         rn.style.color = recoveryOn() ? "var(--up)" : "";
       }
     }
+    var bioRow=document.getElementById("bioRow");
+    if(bioRow) bioAvailable().then(function(has){
+      /* No sensor, no row: an unlock you cannot use is worse than no offer. */
+      bioRow.style.display = has ? "" : "none";
+      if(!has) return;
+      var t=document.getElementById("bioRowT");
+      var n=document.getElementById("bioFpNote");
+      var b=document.getElementById("bioFpBtn");
+      if(t) t.textContent=bioLabel();
+      if(b) b.textContent = bioCfg.on ? "Remove" : "Set up";
+      if(n){
+        n.textContent = !lockIsOn()
+          ? "Set a PIN first \u2014 " + bioLabel() + " sits on top of it."
+          : bioCfg.on
+            ? "On \u2014 " + bioLabel() + " unlocks the app. Your PIN still works."
+            : "Unlock with the sensor on this machine. Your PIN still works.";
+        n.style.color = bioCfg.on ? "var(--up)" : "";
+      }
+    });
     var fb=document.getElementById("faceBtn");
     var fn=document.getElementById("faceNote");
     if(!fb) return;
@@ -13575,7 +13776,7 @@ AI_TYPES.join(", "),
       } else if(canPick){
         h='<div class="hint" style="margin:0"><b>Save to iCloud:</b> tap “Save to iCloud Drive or a folder…” below, open <b>iCloud Drive</b>, create a folder such as <b>My Money</b> and choose it. From then on every change is saved there automatically, with every earlier version kept in its <i>history</i> folder.</div>';
       } else {
-        h='<div class="hint" style="margin:0"><b>This browser can’t write to iCloud Drive by itself</b> (only Chrome or Edge on a computer can). Every change is still saved on this device with every version kept. To put a copy in iCloud Drive, tap below and choose <b>Save to Files › iCloud Drive</b>. Last copy: '+agoText2(lastCopy)+'.</div>'
+        h='<div class="hint" style="margin:0"><b>'+(isDesktopApp()?"The app can’t write to iCloud Drive by itself":"This browser can’t write to iCloud Drive by itself")+'</b> '+(isDesktopApp()?'(pick a folder inside iCloud Drive instead).':'(only Chrome or Edge on a computer can).')+' Every change is still saved on this device with every version kept. To put a copy in iCloud Drive, tap below and choose <b>Save to Files › iCloud Drive</b>. Last copy: '+agoText2(lastCopy)+'.</div>'
           +'<div class="data-btns" style="margin-top:8px"><button type="button" class="btn primary sm" id="icloudCopy">Save a copy to iCloud…</button></div>';
       }
       box.innerHTML=h;
@@ -18359,6 +18560,11 @@ AI_TYPES.join(", "),
       <div class="si-main"><div class="si-t">Face unlock</div>
         <div class="si-d" id="faceNote">Unlock with your face. Needs a camera.</div></div>
       <button type="button" class="btn ghost sm" id="faceBtn">Set up</button>
+    </div>
+    <div class="sec-item" id="bioRow" style="display:none">
+      <div class="si-main"><div class="si-t" id="bioRowT">Fingerprint</div>
+        <div class="si-d" id="bioFpNote">Unlock with the sensor on this machine. Your PIN still works.</div></div>
+      <button type="button" class="btn ghost sm" id="bioFpBtn">Set up</button>
     </div>
     <div class="sec-item">
       <div class="si-main"><div class="si-t">Unlock automatically</div>
